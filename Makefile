@@ -22,6 +22,7 @@
 ##   SOFTWARE.
 ##
 ##Contacts: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@intel.com>
+##		Saurabh Kalikar <saurabh.kalikar@intel.com>
 ##*****************************************************************************************/
 
 BUILD_INDEX_FOR_ONLY= build-index-forward-only
@@ -105,6 +106,14 @@ clean:
 
 depend:
 	(LC_ALL=C; export LC_ALL; makedepend -Y -- $(CXXFLAGS) $(CPPFLAGS) -I. -- src/*.cpp)
+
+#LISA hash
+lisa_hash: ./benchmarks/build-lisa-hash-index.cpp  ./src/LISA-hash/lisa_hash.h
+	$(CXX) ./benchmarks/build-lisa-hash-index.cpp -o build-lisa-hash-index -Ofast -DVECTORIZE -DUINT64 -march=native -I./src/LISA-hash    
+
+#Dynamic programming based chaining benchmark
+dp_chain: ./benchmarks/bench-dp-chaining.cpp ./src/dynamic-programming/parallel_chaining_32_bit.h
+	$(CXX) ./benchmarks/bench-dp-chaining.cpp -I src/dynamic-programming/ -march=native -Ofast -o bench-dp-chaining
 
 # DO NOT DELETE
 

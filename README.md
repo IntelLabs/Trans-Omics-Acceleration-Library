@@ -3,7 +3,7 @@
 ## Introduction
 The Trans-Omics Acceleration Library (TAL) contains key modules for Trans-Omics analysis that are optimized for Xeon.
 
-The contributors to TAL are Sanchit Misra, Vasimuddin Md and Kanak Mahadik.
+The contributors to TAL are Sanchit Misra, Vasimuddin Md, Kanak Mahadik and Saurabh Kalikar.
 
 ## Getting Started
 ```sh
