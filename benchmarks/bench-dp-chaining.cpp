@@ -27,6 +27,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Vasimuddin Md <vasimuddin.
 #include<iostream>
 #include<fstream>
 #include <map>
+#include <x86intrin.h>
 #ifdef VTUNE_ANALYSIS
 #include <ittnotify.h>
 #endif

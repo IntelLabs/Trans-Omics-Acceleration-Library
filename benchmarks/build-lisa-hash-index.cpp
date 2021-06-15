@@ -45,7 +45,6 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <omp.h>
 #include<vector>
 
-#include "RMI.h"
 #include "lisa_hash.h"
 using namespace std;
 

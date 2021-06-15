@@ -29,6 +29,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include "RMI.h"
 using namespace std;
 
 template<typename rmi_key_t, typename rmi_val_t>

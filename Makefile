@@ -29,7 +29,7 @@ BUILD_INDEX_FOR_ONLY= build-index-forward-only
 BUILD_INDEX_WITH_RC= build-index-with-rev-complement
 BENCH_SMEM=		bench-smem
 BENCH_FIXED_LEN_E2E=		bench-fixed-len-e2e-match
-CXX=		icpc
+#CXX=		icpc
 ifeq ($(CXX), icpc)
     CC= icc
 else ifeq ($(CXX), g++)
