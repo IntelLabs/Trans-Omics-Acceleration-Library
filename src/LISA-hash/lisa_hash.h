@@ -149,7 +149,7 @@ class lisa_hash{
 	
 			ifstream rf(keys_bin_file_name, ios::out | ios::binary);
 			if(!rf.good()){
-				cout<<"Binary file with keys not found.. Building\n";
+				cout<<"Error: Binary file with keys not found!!\n";
 				//call store keys
 				//store_sorted_keys(keys_bin_file_name);
 				exit(0);
