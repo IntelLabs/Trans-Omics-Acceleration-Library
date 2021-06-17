@@ -179,6 +179,7 @@ bool RMI<rmi_key_t>::load_sorted_array(char *prefix)
 
 
     if (!infile.good()) return false;
+    return true;
 }
 
 template<typename rmi_key_t>
@@ -202,6 +203,7 @@ bool RMI<rmi_key_t>::load_rmi(char *prefix)
     if (L1_PARAMETERS == NULL) return false;
     infile.read((char*)L1_PARAMETERS, L1_SIZE * 3 * sizeof(double));
     if (!infile.good()) return false;
+    return true;
 }
 
 template<typename rmi_key_t>
