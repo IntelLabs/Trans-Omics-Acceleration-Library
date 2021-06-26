@@ -308,7 +308,7 @@ inline void RMI<rmi_key_t>::last_mile_search_one_step(rmi_key_t key, int64_t &fi
     m = (m - half) * cond + half * (1 - cond);
 }
 
-#if VECTORIZE
+#if VECTORIZE && __AVX512BW__
 template<typename rmi_key_t>
 inline void RMI<rmi_key_t>::last_mile_search_vectorized_step(rmi_key_t key, int64_t &first, int64_t &m)
 {

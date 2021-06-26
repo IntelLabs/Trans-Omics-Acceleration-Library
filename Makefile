@@ -107,13 +107,21 @@ clean:
 depend:
 	(LC_ALL=C; export LC_ALL; makedepend -Y -- $(CXXFLAGS) $(CPPFLAGS) -I. -- src/*.cpp)
 
+KEY_TYPE=-DUINT64
+ifeq ($(key_type),f64)
+	KEY_TYPE=-DF64
+else ifeq ($(key_type),uint64)
+	KEY_TYPE=-DUINT64
+endif
+
 #LISA hash
 lisa_hash: ./benchmarks/build-lisa-hash-index.cpp  ./src/LISA-hash/lisa_hash.h
-	$(CXX) ./benchmarks/build-lisa-hash-index.cpp -o build-lisa-hash-index -Ofast -DVECTORIZE -DUINT64 -march=native -I./src/LISA-hash    
+	$(CXX) ./benchmarks/build-lisa-hash-index.cpp -o build-lisa-hash-index -Ofast -DVECTORIZE ${KEY_TYPE} -I./src/LISA-hash -march=native
 
 #Dynamic programming based chaining benchmark
 dp_chain: ./benchmarks/bench-dp-chaining.cpp ./src/dynamic-programming/parallel_chaining_32_bit.h
-	$(CXX) ./benchmarks/bench-dp-chaining.cpp -I src/dynamic-programming/ -march=native -Ofast -o bench-dp-chaining
+	$(CXX) ./benchmarks/bench-dp-chaining.cpp -I src/dynamic-programming/ -Ofast -o bench-dp-chaining -march=native -DDEBUG
+
 
 # DO NOT DELETE
 
