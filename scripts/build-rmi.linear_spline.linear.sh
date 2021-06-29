@@ -27,7 +27,7 @@ cp learned-systems-rmi/sorted_doubles_rmi.h .
 cp learned-systems-rmi/sorted_doubles_rmi_data.h .
 ./modify_generated_code.sh sorted_doubles_rmi $m
 rm rmi-minimizer
-icpc rmi-main.cpp sorted_doubles_rmi.cpp -D$T -o rmi-minimizer
+${CXX} rmi-main.cpp sorted_doubles_rmi.cpp -D$T -o rmi-minimizer
 time ./rmi-minimizer $A $B > out
 grep avg_log2_err out
 echo "Built RMI"
