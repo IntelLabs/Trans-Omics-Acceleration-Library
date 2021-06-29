@@ -604,7 +604,7 @@ class dp_chain {
 				
 				int32_t msk_ar[8];
 				for(int it = 0; it < 8; it++){
-					msk_ar[it] = (it < (shift))?255:0;
+					msk_ar[it] = (it < (shift))?0xFFFFFFFF:0;
 				}
 				loopContinueMask = _mm256_or_si256(loopContinueMask, _mm256_loadu_si256((__m256i*)msk_ar));
 				//loopContinueMask = loopContinueMask>>(shift);
