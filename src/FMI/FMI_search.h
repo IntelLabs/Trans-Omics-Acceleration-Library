@@ -35,16 +35,52 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #include <limits.h>
 #include <fstream>
 
+#include "bntseq.h"
+// #include "read_index_ele.h"
 #include "bwa.h"
 #include "utils.h"
 
 #define DUMMY_CHAR 6
+
+#define SA_COMPRESSION 1
+#define SA_COMPX 03 // (= power of 2)
+#define SA_COMPX_MASK 0x7    // 0x7 or 0x3 or 0x1
+
 
 #define assert_not_null(x, size, cur_alloc) \
         if (x == NULL) { fprintf(stderr, "Allocation of %0.2lf GB for " #x " failed.\nCurrent Allocation = %0.2lf GB\n", size * 1.0 /(1024*1024*1024), cur_alloc * 1.0 /(1024*1024*1024)); exit(EXIT_FAILURE); }
 
 #define MAX_FIFO_SIZE 1048576
 
+#define CP_BLOCK_SIZE 64
+#define CP_FILENAME_SUFFIX ".bwt.2bit.64"
+#define CP_MASK 63
+#define CP_SHIFT 6
+
+typedef struct checkpoint_occ_scalar
+{
+    int64_t cp_count[4];
+    uint64_t one_hot_bwt_str[4];
+}CP_OCC;
+
+#if defined(__clang__) || defined(__GNUC__)
+static inline int _mm_countbits_64(unsigned long x) {
+    return __builtin_popcountl(x);
+}
+#endif
+
+#define \
+GET_OCC(pp, c, occ_id_pp, y_pp, occ_pp, one_hot_bwt_str_c_pp, match_mask_pp) \
+                int64_t occ_id_pp = pp >> CP_SHIFT; \
+                int64_t y_pp = pp & CP_MASK; \
+                int64_t occ_pp = cp_occ[occ_id_pp].cp_count[c]; \
+                uint64_t one_hot_bwt_str_c_pp = cp_occ[occ_id_pp].one_hot_bwt_str[c]; \
+                uint64_t match_mask_pp = one_hot_bwt_str_c_pp & one_hot_mask_array[y_pp]; \
+                occ_pp += _mm_countbits_64(match_mask_pp);
+
+
+
+#if OLD
 #define CP_BLOCK_SIZE_SCALAR 64
 #define CP_FILENAME_SUFFIX_SCALAR ".bwt.2bit.64"
 #define CP_MASK_SCALAR 63
@@ -129,6 +165,8 @@ GET_OCC(pp, c, c256, occ_id_pp, y_pp, occ_pp, bwt_str_pp, bwt_pp_vec, mask_pp_ve
                 occ_pp += _mm_countbits_32(mask_pp);
 
 #endif
+#endif
+
 
 #if 0
 #if defined (__2BIT_LEVEL__)
@@ -312,6 +350,20 @@ typedef struct checkpoint_occ
 #endif
 #endif
 
+
+#define BWA_IDX_BWT 0x1
+#define BWA_IDX_BNS 0x2
+#define BWA_IDX_PAC 0x4
+#define BWA_IDX_ALL 0x7
+
+typedef struct {
+	bntseq_t *bns; // information on the reference sequences
+	uint8_t  *pac; // the actual 2-bit encoded reference sequences with 'N' converted to a random base
+	int    is_shm;
+	int64_t l_mem;
+	uint8_t  *mem;
+} bwaidx_fm_t;
+
 typedef struct batch_meta
 {
     int64_t k, l;
@@ -344,6 +396,7 @@ typedef struct smem_struct
 
 #define SAL_PFD 16
 
+// class FMI_search: public indexEle
 class FMI_search
 {
     public:
@@ -429,9 +482,25 @@ class FMI_search
                         int32_t *coordCountArray,
                         uint32_t count,
                         int32_t max_occ);
+    // SA Compression
+    int64_t get_sa_entry_compressed(int64_t pos, int tid);
+    void get_sa_entries(SMEM *smemArray,
+                        int64_t *coordArray,
+                        int32_t *coordCountArray,
+                        uint32_t count,
+                        int32_t max_occ,
+                        int tid);
+    int64_t call_one_step(int64_t pos, int64_t &sa_entry, int64_t &offset);
 
+    void get_sa_entries_prefetch(SMEM *smemArray, int64_t *coordArray,
+                                 int64_t *coordCountArray, int64_t count,
+                                 const int32_t max_occ, int tid, int64_t &id_);
+
+    void bwa_idx_load_ele(const char *hint, int which);
+    
     int64_t reference_seq_len;
     int64_t sentinel_index;
+    bwaidx_fm_t *idx;    
 private:
         char file_name[PATH_MAX];
         int64_t index_alloc;
@@ -440,11 +509,13 @@ private:
         int8_t *sa_ms_byte;
         CP_OCC *cp_occ;
 
-#if ((!__AVX2__))
-        BIT_DATA_TYPE base_mask[4][2];
-#else
-        uint8_t *c_bcast_array;
-#endif
+    uint64_t *one_hot_mask_array;
+
+    // #if ((!__AVX2__))
+    // BIT_DATA_TYPE base_mask[4][2];
+    // #else
+    // uint8_t *c_bcast_array;
+    // #endif
 
         int64_t pac_seq_len(const char *fn_pac);
         void pac2nt(const char *fn_pac,
@@ -460,6 +531,11 @@ private:
                                int64_t ref_seq_len,
                                int64_t *sa_bwt,
                                int64_t *count);
+        int build_fm_index(const char *ref_file_name,
+                           char *binary_seq,
+                           int64_t ref_seq_len,
+                           int64_t *sa_bwt,
+                           int64_t *count);    
         SMEM backwardExt(SMEM smem, uint8_t a);
 };
 
