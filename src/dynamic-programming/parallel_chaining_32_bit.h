@@ -76,7 +76,7 @@ void create_SoA_Anchors_32_bit(anchor_t* anc, num_bits_t anc_size, num_bits_t* &
 	anchor_q = &anchor_q[16];
 	anchor_l = &anchor_l[16];
 
-	for(int i = 0; i < anc_size; i++){
+	for(uint32_t i = 0; i < anc_size; i++){
 		anchor_r[i] = (num_bits_t)anc[i].r;
 		anchor_q[i] = (num_bits_t)anc[i].q;
 		anchor_l[i] = (num_bits_t)anc[i].l;
@@ -195,11 +195,11 @@ class dp_chain {
 	int32_t get_gap_cost(anchor_t a, anchor_t b, float avg_qspan, float gap_scale){
 		int32_t dr = a.r - b.r;
 		int32_t dq = a.q - b.q;
-		bool flag = true;
-		bool is_cdna = false;	
-		int32_t dd = dr > dq? dr - dq : dq - dr; //smk: dd = |dr-dq|;
+		//bool flag = true;
+		//bool is_cdna = false;	
+		int32_t dd = dr > dq? dr - dq : dq - dr; //dd = |dr-dq|;
 		int32_t log_dd = dd? ilog2_32_dp_lib(dd) : 0;
-		int32_t gap_cost = 0, sc = 0;
+		int32_t gap_cost = 0;
 		
 		gap_cost = (int)(dd * .01 * avg_qspan) + (log_dd>>1) + 0.00; //TODO: Only multiplication should be casted to (int)
 
@@ -219,8 +219,6 @@ class dp_chain {
 		float avg_qspan;
 		for (int i = 0; i < n; ++i) sum_qspan += anchor_l[i];
 		avg_qspan = (float)sum_qspan / n;
-		uint64_t avg_pred = 0;	
-		uint64_t avg_skipped = 0;
 		int st = 0;	
 		
 		__m512i dr_v = _mm512_set1_epi32((int64_t)dr);
@@ -239,10 +237,10 @@ class dp_chain {
 			
 
 			//uint64_t ri = anchors[i].r;
-			while (st < i && !(anchors[i].r - anchors[st].r <= dr)) ++st; //smk: predecessor's position is too far
+			while (st < i && !(anchors[i].r - anchors[st].r <= (uint32_t)dr)) ++st; //predecessor's position is too far
 
 			// TODO: Minimap specific max_iter parameter
-			if (i - st > max_iter) st = i - max_iter; //smk: predecessor's index is too far
+			if (i - st > max_iter) st = i - max_iter; //predecessor's index is too far
 
 			
 			int j = i - 1;
@@ -383,7 +381,7 @@ class dp_chain {
 					}
 					else if (maxfVector_v[iter] == max_f){
 						max_j = max (max_j, maxjVector_v[iter]);
-						if(max_f == anchor_l[i]) max_j = -1;
+						if((uint32_t)max_f == anchor_l[i]) max_j = -1;
 					}
 				}
 		
@@ -407,25 +405,21 @@ class dp_chain {
 
 				
 				int32_t oc = 0;
-				int32_t lj = anchor_l[j];
-				int32_t ref_overlap = rj + lj - ri;
-				int32_t query_overlap = qj + lj - qi;
 
 				int32_t score = f[j];//anchor_l[i]; 
 				oc = ddr < ddq? ddr: ddq;
-				oc = oc < anchor_l[i]? oc : anchor_l[i];
+				oc = oc < (int32_t)anchor_l[i]? oc : anchor_l[i];
 				score += oc;
 
 				int32_t dr = ddr;
 				int32_t dq = ddq;
-				int32_t dd = abs(dr - dq);//dr > dq? dr - dq : dq - dr; //smk: dd = |dr-dq|;
+				int32_t dd = abs(dr - dq);//dr > dq? dr - dq : dq - dr; //dd = |dr-dq|;
 				int32_t log_dd = dd? ilog2_32_dp_lib(dd) : 0;
 				int32_t gap_cost = 0;
 				
 				gap_cost = (int)(dd * .01 * avg_qspan) + (log_dd>>1) + 0.00; //TODO: Only multiplication should be casted to (int)
 				score -= gap_cost;
 
-				bool check = score > max_f;
 				if(score > max_f){
 					max_f = score;
 					max_j = j;
@@ -448,8 +442,6 @@ class dp_chain {
 		float avg_qspan;
 		for (int i = 0; i < n; ++i) sum_qspan += anchor_l[i];
 		avg_qspan = (float)sum_qspan / n;
-		uint64_t avg_pred = 0;	
-		uint64_t avg_skipped = 0;
 		int st = 0;	
 		
 		__m256i dr_v = _mm256_set1_epi32(dr);
@@ -468,10 +460,10 @@ class dp_chain {
 			
 
 			//uint64_t ri = anchors[i].r;
-			while (st < i && !(anchors[i].r - anchors[st].r <= dr)) ++st; //smk: predecessor's position is too far
+			while (st < i && !(anchors[i].r - anchors[st].r <= dr)) ++st; //predecessor's position is too far
 
 			// TODO: Minimap specific max_iter parameter
-			if (i - st > max_iter) st = i - max_iter; //smk: predecessor's index is too far
+			if (i - st > max_iter) st = i - max_iter; //predecessor's index is too far
 
 			
 			int j = i - 1;
@@ -687,7 +679,7 @@ class dp_chain {
 
 				int32_t dr = ddr;
 				int32_t dq = ddq;
-				int32_t dd = abs(dr - dq);//dr > dq? dr - dq : dq - dr; //smk: dd = |dr-dq|;
+				int32_t dd = abs(dr - dq);//dr > dq? dr - dq : dq - dr; //dd = |dr-dq|;
 				int32_t log_dd = dd? ilog2_32_dp_lib(dd) : 0;
 				int32_t gap_cost = 0;
 				
