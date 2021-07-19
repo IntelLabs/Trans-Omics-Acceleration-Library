@@ -50,13 +50,12 @@ int main(int argc, char** argv) {
 	if(argc != 7) {
 		error_quit("Need 6 args: ref_file query_set k num_rmi_leaf_nodes number_of_threads min_seed_length");
 	}
-
-	K = atoi(argv[3]);
+	uint64_t totalTicks = 0;
+	int K = atoi(argv[3]);
 	eprintln("using K = %d", K);
 
 	int64_t num_rmi_leaf_nodes = atol(argv[4]);
 	eprintln("using num_rmi_leaf_nodes = %ld", num_rmi_leaf_nodes);
-	eprintln("using L = %d", L);
 
 
 
@@ -90,7 +89,7 @@ int main(int argc, char** argv) {
 	eprintln("Read ref file done. %lld",  size_file);
 	 
 
-	QBWT_HYBRID_LUT<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
+	QBWT_HYBRID<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
 
 
 	int64_t qs_size ;
@@ -193,10 +192,6 @@ int main(int argc, char** argv) {
 	eprintln("numSMEMs = %lld", (long long)TotalSMEM);
 	eprintln("SMEMs per query = %.3f",  TotalSMEM * 1.0 / num_queries);
 	eprintln("totalTicks = %lld", (long long)totalTicks);
-//	eprintln("Ticks per /fmi char = %.3f", totalTicks * 1.0 / (qs_size));
-//	eprintln("Ticks per /chunk =  %.6f", chunk_ticks*1.0 / chc);
-//	eprintln("Ticks chunk: %lld, chunk count: %lld, ticks per chunk: %.6f, success_prune %lld successful chunks:%lld, failed chunks: %lld prunable: %lld", (long long)chunk_ticks,(long long) chc, chunk_ticks*1.0 / chc, (long long)prune_succ, (long long)chc_success, (long long)chc_failed, (long long)chk_failed_proned);
-//	eprintln("one ticks = %lld, pct = %.6f", (long long)one_ticks, one_ticks*1.0 / totalTicks);
 
 
 

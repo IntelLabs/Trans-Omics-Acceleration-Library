@@ -703,8 +703,16 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
 template<typename index_t, typename kenc_t>
 IPBWT_RMI<index_t, kenc_t>::~IPBWT_RMI()
 {
-    eprintln("bs_calls = %ld, vbs_calls = %ld", bs_calls, vbs_calls);
-    eprintln("bs_ticks = %ld, vbs_ticks = %ld", bs_ticks, vbs_ticks);
+#ifndef HUGE_PAGE
+    free(ipbwt_array);
+    _mm_free(L1_PARAMETERS);
+#else
+    munmap(ipbwt_array, n * NUM_IPBWT_BYTES);
+    munmap(L1_PARAMETERS, L1_SIZE * 3 * sizeof(double));
+#endif
+
+    //eprintln("bs_calls = %ld, vbs_calls = %ld", bs_calls, vbs_calls);
+    //eprintln("bs_ticks = %ld, vbs_ticks = %ld", bs_ticks, vbs_ticks);
 }
 
 template<typename index_t, typename kenc_t>

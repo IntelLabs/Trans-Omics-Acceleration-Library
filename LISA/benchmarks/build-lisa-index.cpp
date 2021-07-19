@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 }
 #ifdef REV_COMP
 { 
-   QBWT_HYBRID_LUT<index_t> qbwt(seq_forward_only, seq_forward_only.size(), argv[1], K, num_rmi_leaf_nodes);
+   QBWT_HYBRID<index_t> qbwt(seq_forward_only, seq_forward_only.size(), argv[1], K, num_rmi_leaf_nodes);
 }
    
 

@@ -137,8 +137,6 @@ struct Info {
     uint64_t id;
     pair<index_t, index_t> intv;
 
-//    int numPrevSuccChk;
-//    int treeShrinkLength;
 
 
 
@@ -191,8 +189,6 @@ struct Info {
 	
 	
     }   
- //QBWT_HYBRID_LUT<index_t>::kenc_t nxt_ext;
-//    uint64_t nxt_ext;
 
 };
 

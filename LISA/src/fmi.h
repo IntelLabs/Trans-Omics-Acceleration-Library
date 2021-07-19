@@ -33,7 +33,7 @@ class FMI {
         FMI(const string &t, index_t t_size, index_t *sa, string _bases, string parent_filename); 
         struct Interval{ index_t low, high; }; // left-inclusive
         Interval backward_extend(Interval intv, char a) const;
-
+	~FMI();
     // private:
         static constexpr int INDEX_T_BITS = sizeof(index_t)*__CHAR_BIT__;
         string bases;
@@ -224,3 +224,12 @@ typename FMI<index_t>::Interval FMI<index_t>::backward_extend(Interval intv, cha
     return ret;
 }
 
+template<typename index_t>
+FMI<index_t>::~FMI(){
+    eprintln("FMI memory deallocated\n");
+#ifndef HUGE_PAGE
+    free(occb);
+#else
+    munmap(occb, (sizeof(occb[0]) * 4 * m + 63) / 64 * 64);
+#endif
+} 

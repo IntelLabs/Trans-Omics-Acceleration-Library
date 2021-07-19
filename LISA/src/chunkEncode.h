@@ -23,7 +23,7 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
-void prepareChunkBatchVectorized_v1(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all){
+void prepareChunkBatchVectorized_v1(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K){
 
 	int64_t p[21][8];
 	
@@ -89,7 +89,7 @@ void prepareChunkBatchVectorized_v1(Info* qPool, int qPoolSize, uint64_t* str_en
 			Info &q = qPool[j];
 			uint64_t nxt_ext = 0;
 			
-			for(int itr=q.l-K; itr!=q.l; itr++) {
+			for(int itr = q.l-K; itr != q.l; itr++) {
 			    nxt_ext = (nxt_ext<<2) | (q.p[itr]); 
 			}
 		str_enc[j] = nxt_ext;		
@@ -99,7 +99,7 @@ void prepareChunkBatchVectorized_v1(Info* qPool, int qPoolSize, uint64_t* str_en
 
 
 }
-void prepareChunkBatchVectorized(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all){
+void prepareChunkBatchVectorized(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K){
 
 	uint64_t offset[24] = {40,38,36,34,32,30,28,26,24,22,20,18,16,14,12,10,8,6,4,2,0,0,0,0};
 	uint64_t v_intv[24] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
@@ -159,25 +159,24 @@ void prepareChunkBatchVectorized(Info* qPool, int qPoolSize, uint64_t* str_enc, 
 	
 	str_enc[j] = v_nxt_ext;
 
-	const char *p = qPool[j + 40].p; int offset = qPool[j + 40].l -  K;
-        my_prefetch((const char*)(p + offset) , _MM_HINT_T0);
+	const char *p = qPool[j + 40].p; int off_set = qPool[j + 40].l -  K;
+        my_prefetch((const char*)(p + off_set) , _MM_HINT_T0);
     }
 }
 
-void prepareChunkBatch(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all){
+void prepareChunkBatch(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K){
 
 		    for(int64_t j = 0; j < qPoolSize; j++)
 		    {
 			Info &q = qPool[j];
 			uint64_t nxt_ext = 0;
-			int i = q.l - K;
 #ifndef NO_DNA_ORD
 			
-			for(int i=q.l-K; i!=q.l; i++) {
+			for(int i = q.l-K; i != q.l; i++) {
 			    nxt_ext = (nxt_ext<<2) | dna_ord(q.p[i]); 
 			}
 #else			
-			for(int i=q.l-K; i!=q.l; i++) {
+			for(int i = q.l-K; i != q.l; i++) {
 			    nxt_ext = (nxt_ext<<2) | (q.p[i]); 
 			}
 #endif
