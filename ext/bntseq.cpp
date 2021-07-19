@@ -21,9 +21,12 @@
    ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
+
+   Modified Copyright (C) 2020 Intel Corporation, Heng Li.
+   Contacts: Vasimuddin Md <vasimuddin.md@intel.com>; Sanchit Misra <sanchit.misra@intel.com>;
+   Heng Li <hli@jimmy.harvard.edu> 
 */
 
-/* Contact: Heng Li <hli@jimmy.harvard.edu> */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,9 +37,19 @@
 #include <limits.h>
 #include "bntseq.h"
 #include "utils.h"
+// #include "macro.h"
 
 #include "kseq.h"
 KSEQ_DECLARE(gzFile)
+
+#include "khash.h"
+KHASH_MAP_INIT_STR(str, int)
+
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
+
+// extern uint64_t tprof[LIM_R][LIM_C];
 
 unsigned char nst_nt4_table[256] = {
 	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
@@ -62,7 +75,7 @@ void bns_dump(const bntseq_t *bns, const char *prefix)
 	char str[PATH_MAX];
 	FILE *fp;
 	int i;
-    assert(strlen(prefix) < PATH_MAX - 4);
+    //assert(strlen(prefix) + 4 < 1024);
 	{ // dump .ann
 		strcpy_s(str, PATH_MAX, prefix); strcat_s(str, PATH_MAX, ".ann");
 		fp = xopen(str, "w");
@@ -90,6 +103,129 @@ void bns_dump(const bntseq_t *bns, const char *prefix)
 	}
 }
 
+bntseq_t *bns_restore_core(const char *ann_filename, const char* amb_filename, const char* pac_filename)
+{
+	char str[8193];
+	FILE *fp;
+	const char *fname;
+	bntseq_t *bns;
+	long long xx;
+	int i;
+	int scanres;
+	bns = (bntseq_t*)calloc(1, sizeof(bntseq_t));
+	assert(bns != 0);
+	{ // read .ann
+		fp = xopen(fname = ann_filename, "r");
+		scanres = fscanf(fp, "%lld%d%u", &xx, &bns->n_seqs, &bns->seed);
+		assert(bns->n_seqs >= 0 && bns->n_seqs <= INT_MAX);
+		if (scanres != 3) goto badread;
+		bns->l_pac = xx;
+		bns->anns = (bntann1_t*)calloc(bns->n_seqs, sizeof(bntann1_t));
+        assert(bns->anns != NULL);
+		for (i = 0; i < bns->n_seqs; ++i) {
+			bntann1_t *p = bns->anns + i;
+			char *q = str;
+			int c;
+			// read gi and sequence name
+			scanres = fscanf(fp, "%u%8192s", &p->gi, str);
+			if (scanres != 2) goto badread;
+			p->name = strdup(str);
+			// read fasta comments 
+			while (q - str < sizeof(str) - 1 && (c = fgetc(fp)) != '\n' && c != EOF) *q++ = c;
+			while (c != '\n' && c != EOF) c = fgetc(fp);
+			if (c == EOF) {
+				scanres = EOF;
+				goto badread;
+			}
+			*q = 0;
+			assert(strlen(str) < 8192);
+			if (q - str > 1 && strcmp(str, " (null)") != 0) p->anno = strdup(str + 1); // skip leading space
+			else p->anno = strdup("");
+			// read the rest
+			scanres = fscanf(fp, "%lld%d%d", &xx, &p->len, &p->n_ambs);
+			if (scanres != 3) goto badread;
+			p->offset = xx;
+		}
+		err_fclose(fp);
+	}
+	{ // read .amb
+		int64_t l_pac;
+		int32_t n_seqs;
+		fp = xopen(fname = amb_filename, "r");
+		scanres = fscanf(fp, "%lld%d%d", &xx, &n_seqs, &bns->n_holes);
+		assert(bns->n_holes >= 0 && bns->n_holes <= INT_MAX);
+		if (scanres != 3) goto badread;
+		l_pac = xx;
+		xassert(l_pac == bns->l_pac && n_seqs == bns->n_seqs, "inconsistent .ann and .amb files.");
+        if(bns->n_holes){
+            bns->ambs = (bntamb1_t*)calloc(bns->n_holes, sizeof(bntamb1_t));
+            assert(bns->ambs != NULL);
+        }
+        else{
+            bns->ambs = 0;
+        }
+		for (i = 0; i < bns->n_holes; ++i) {
+			bntamb1_t *p = bns->ambs + i;
+			scanres = fscanf(fp, "%lld%d%8192s", &xx, &p->len, str);
+			if (scanres != 3) goto badread;
+			p->offset = xx;
+			p->amb = str[0];
+		}
+		err_fclose(fp);
+	}
+	{ // open .pac
+		bns->fp_pac = xopen(pac_filename, "rb");
+	}
+	return bns;
+
+ badread:
+	if (EOF == scanres) {
+		err_fatal(__func__, "Error reading %s : %s\n", fname, ferror(fp) ? strerror(errno) : "Unexpected end of file");
+	}
+	err_fatal(__func__, "Parse error reading %s\n", fname);
+}
+
+bntseq_t *bns_restore(const char *prefix)
+{  
+	char ann_filename[PATH_MAX], amb_filename[PATH_MAX], pac_filename[PATH_MAX], alt_filename[PATH_MAX];
+	FILE *fp;
+	bntseq_t *bns;
+	//assert(strlen(prefix) + 4 < 1024);
+	strcpy_s(ann_filename, PATH_MAX, prefix); strcat_s(ann_filename, PATH_MAX, ".ann");
+	strcpy_s(amb_filename, PATH_MAX, prefix); strcat_s(amb_filename, PATH_MAX, ".amb");
+	strcpy_s(pac_filename, PATH_MAX, prefix); strcat_s(pac_filename, PATH_MAX, ".pac");
+	bns = bns_restore_core(ann_filename, amb_filename, pac_filename);
+	if (bns == 0) return 0;
+    strcpy_s(alt_filename, PATH_MAX, prefix); strcat_s(alt_filename, PATH_MAX, ".alt");
+	if ((fp = fopen(alt_filename, "r")) != 0) { // read .alt file if present
+		char str[1024];
+		khash_t(str) *h;
+		int c, i, absent;
+		khint_t k;
+		h = kh_init(str);
+        assert(h != NULL);
+		for (i = 0; i < bns->n_seqs; ++i) {
+			k = kh_put(str, h, bns->anns[i].name, &absent);
+			kh_val(h, k) = i;
+		}
+		i = 0;
+		while ((c = fgetc(fp)) != EOF) {
+			if (c == '\t' || c == '\n' || c == '\r') {
+				str[i] = 0;
+				if (str[0] != '@') {
+					k = kh_get(str, h, str);
+					if (k != kh_end(h))
+						bns->anns[kh_val(h, k)].is_alt = 1;
+				}
+				while (c != '\n' && c != EOF) c = fgetc(fp);
+				i = 0;
+			} else str[i++] = c; // FIXME: potential segfault here
+		}
+		kh_destroy(str, h);
+		fclose(fp);
+	}
+	return bns;
+}
 
 void bns_destroy(bntseq_t *bns)
 {
@@ -134,7 +270,6 @@ static uint8_t *add1(const kseq_t *seq, bntseq_t *bns, uint8_t *pac, int64_t *m_
 				if (bns->n_holes == *m_holes) {
 					(*m_holes) <<= 1;
 					bns->ambs = (bntamb1_t*)realloc(bns->ambs, (*m_holes) * sizeof(bntamb1_t));
-                    assert(bns->ambs != NULL);
 				}
 				*q = bns->ambs + bns->n_holes;
 				(*q)->len = 1;
@@ -150,7 +285,6 @@ static uint8_t *add1(const kseq_t *seq, bntseq_t *bns, uint8_t *pac, int64_t *m_
 			if (bns->l_pac == *m_pac) { // double the pac size
 				*m_pac <<= 1;
 				pac = (uint8_t*) realloc(pac, *m_pac/4);
-                assert(pac != NULL);
 				memset(pac + bns->l_pac/4, 0, (*m_pac - bns->l_pac)/4);
 			}
 			_set_pac(pac, bns->l_pac, c);
@@ -181,11 +315,13 @@ int64_t bns_fasta2bntseq(gzFile fp_fa, const char *prefix, int for_only)
 	srand48(bns->seed);
 	m_seqs = m_holes = 8; m_pac = 0x10000;
 	bns->anns = (bntann1_t*)calloc(m_seqs, sizeof(bntann1_t));
+    assert(bns->anns != NULL);
 	bns->ambs = (bntamb1_t*)calloc(m_holes, sizeof(bntamb1_t));
+    assert(bns->ambs != NULL);
 	pac = (uint8_t*) calloc(m_pac/4, 1);
 	if (pac == NULL) { perror("Allocation of pac failed"); exit(EXIT_FAILURE); }
 	q = bns->ambs;
-	assert(strlen(prefix) < PATH_MAX - 4);
+	//assert(strlen(prefix) + 4 < 1024);
 	strcpy_s(name, PATH_MAX, prefix); strcat_s(name, PATH_MAX, ".pac");
 	fp = xopen(name, "wb");
 	// read sequences

@@ -70,7 +70,9 @@ extern "C" {
 #endif
 
 	void bns_dump(const bntseq_t *bns, const char *prefix);
-    void bns_destroy(bntseq_t *bns);
+	bntseq_t *bns_restore(const char *prefix);
+	bntseq_t *bns_restore_core(const char *ann_filename, const char* amb_filename, const char* pac_filename);
+	void bns_destroy(bntseq_t *bns);
 	int64_t bns_fasta2bntseq(gzFile fp_fa, const char *prefix, int for_only);
 	int bns_pos2rid(const bntseq_t *bns, int64_t pos_f);
 	int bns_cnt_ambi(const bntseq_t *bns, int64_t pos_f, int len, int *ref_id);

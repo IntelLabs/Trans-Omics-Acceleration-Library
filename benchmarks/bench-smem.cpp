@@ -39,6 +39,19 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #define QUERY_DB_SIZE 1280000000
 int myrank, num_ranks;
 
+void bseq_destroy(bseq1_t *s)
+{
+    if(s)
+    {
+        if(s->name) free(s->name);
+        if(s->comment) free(s->comment);
+        if(s->seq) free(s->seq);
+        if(s->qual) free(s->qual);
+        if(s->sam) free(s->sam);
+        free(s);
+    }
+}
+
 int main(int argc, char **argv) {
 #ifdef VTUNE_ANALYSIS
     __itt_pause();

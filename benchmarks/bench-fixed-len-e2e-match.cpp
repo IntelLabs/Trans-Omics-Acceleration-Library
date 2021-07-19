@@ -65,6 +65,20 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #define BEST_BATCH_SIZE 24
 #define MAX_BATCH_SIZE 128
 
+void bseq_destroy(bseq1_t *s)
+{
+    if(s)
+    {
+        if(s->name) free(s->name);
+        if(s->comment) free(s->comment);
+        if(s->seq) free(s->seq);
+        if(s->qual) free(s->qual);
+        if(s->sam) free(s->sam);
+        free(s);
+    }
+}
+
+
 int compare_uint(const void *a, const void *b)
 {
     uint32_t *pa = (uint32_t *)a;
