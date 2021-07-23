@@ -36,8 +36,8 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #include <fstream>
 
 #include "bntseq.h"
-// #include "read_index_ele.h"
-#include "bwa.h"
+#include "bwt.h"
+#include "bseq.h"
 #include "utils.h"
 
 #define DUMMY_CHAR 6
@@ -351,6 +351,8 @@ typedef struct checkpoint_occ
 #endif
 
 
+
+// from index ele
 #define BWA_IDX_BWT 0x1
 #define BWA_IDX_BNS 0x2
 #define BWA_IDX_PAC 0x4

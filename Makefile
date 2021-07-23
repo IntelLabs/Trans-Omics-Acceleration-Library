@@ -44,7 +44,7 @@ INCLUDES=   -Iext -Iext/safestringlib/include -Isrc/FMI/
 LIBS=		-fopenmp -lm -lz -L. -ltal -Lext/safestringlib/ -lsafestring
 OBJS=		ext/utils.o \
 			ext/kstring.o ext/bntseq.o \
-			src/FMI/FMI_search.o ext/bwa.o
+			src/FMI/FMI_search.o ext/bseq.o
 TAL_LIB=    libtal.a
 SAFE_STR_LIB=    ext/safestringlib/libsafestring.a
 
@@ -126,11 +126,12 @@ dp_chain: ./benchmarks/bench-dp-chaining.cpp ./src/dynamic-programming/parallel_
 # DO NOT DELETE
 
 src/FMI/FMI_search.o: src/FMI/FMI_search.h ext/bntseq.h
-src/FMI/FMI_search.o: ext/utils.h ext/bwa.h ext/sais.h
+src/FMI/FMI_search.o: ext/utils.h  ext/sais.h
 ext/bntseq.o: ext/bntseq.h ext/utils.h ext/kseq.h
-ext/bwa.o: ext/bntseq.h ext/bwa.h ext/utils.h
-ext/bwa.o: ext/kstring.h ext/kseq.h
+#ext/bwa.o: ext/bntseq.h ext/bwa.h ext/utils.h
+#ext/bwa.o: ext/kstring.h ext/kseq.h
 ext/kstring.o: ext/kstring.h
 ext/utils.o: ext/utils.h ext/kseq.h
+ext/bseq.o: ext/bseq.h ext/utils.h ext/kseq.h
 benchmarks/bench-smem.o: src/FMI/FMI_search.h ext/bntseq.h ext/utils.h
-benchmarks/bench-smem.o: ext/bwa.h ext/sais.h
+benchmarks/bench-smem.o:  ext/sais.h

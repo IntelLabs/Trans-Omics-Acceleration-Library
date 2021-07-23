@@ -29,7 +29,7 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #include<stdint.h>
 #include <omp.h>
 #include <string.h>
-#include "bwa.h"
+// #include "bwa.h"
 #include "FMI_search.h"
 
 #ifdef VTUNE_ANALYSIS
