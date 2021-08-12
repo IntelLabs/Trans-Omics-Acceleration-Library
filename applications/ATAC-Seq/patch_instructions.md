@@ -1,5 +1,5 @@
 # Instructions
-[//]:  # for ubuntu
+ [//]: # for ubuntu
 
 # Update
 apt-get update
@@ -36,11 +36,11 @@ python3.7 -m pip install -r requirements-base.txt
 python3.7 -m pip install torch torchvision torchaudio
 python3.7 -m pip install -r requirements-macs2.txt
 
-[//]:  # Install torch-ccl
-[//]:  # git clone --branch v1.1.0 https://github.com/intel/torch-ccl.git && cd torch-ccl
-[//]:  # git submodule sync
-[//]:  # git submodule update --init --recursive
-[//]:  # python3.7 setup.py install
+ [//]:  # Install torch-ccl
+ [//]:  # git clone --branch v1.1.0 https://github.com/intel/torch-ccl.git && cd torch-ccl
+ [//]:  # git submodule sync
+ [//]:  # git submodule update --init --recursive
+ [//]:  # python3.7 setup.py install
 
 # Setup 1D convolution module
 cd /home/libxsmm/samples/deeplearning/conv1dopti_layer/Conv1dOpti-extension/ && python setup.py install && cd -
@@ -60,8 +60,8 @@ rsync -aP rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/linux.x86_64/bedGraph
 rsync -aP rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/linux.x86_64/bigWigToBedGraph /home/
 export PATH="$PATH:/home/" >> /home/.bashrc
 
-[//]:  # This command reads the peak positions from the .narrowPeak file and writes them to a bigWig file in the current directory,
-[//]:  # named `dsc.Mono.2400.cutsites.smoothed.200.3.narrowPeak.bw`.
+ [//]:  # This command reads the peak positions from the .narrowPeak file and writes them to a bigWig file in the current directory,
+ [//]:  # named `dsc.Mono.2400.cutsites.smoothed.200.3.narrowPeak.bw`.
 
 python $atacworks/scripts/peak2bw.py \
     --input dsc.Mono.2400.cutsites.smoothed.200.3.narrowPeak \
@@ -105,4 +105,4 @@ numactl --membind 0 -C 1-27 python $atacworks/scripts/main.py train \
         --files_train $atacworks/Mono.50.2400.train.h5 \
         --val_files $atacworks/Mono.50.2400.val.h5
 
-[//]:  # Another option to use on machines without NUMA --- "taskset -c 1-3 python "
+ [//]:  # Another option to use on machines without NUMA --- "taskset -c 1-3 python "
