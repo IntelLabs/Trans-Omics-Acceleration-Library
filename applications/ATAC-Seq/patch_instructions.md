@@ -51,11 +51,14 @@ python3.7 -m pip install torch torchvision torchaudio
 python3.7 -m pip install -r requirements-macs2.txt
 ```
 
- [//]:  # Install torch-ccl
- [//]:  # git clone --branch v1.1.0 https://github.com/intel/torch-ccl.git && cd torch-ccl
- [//]:  # git submodule sync
- [//]:  # git submodule update --init --recursive
- [//]:  # python3.7 setup.py install
+## (Optional) Install torch-ccl
+```bash
+# Install torch-ccl
+# git clone --branch v1.1.0 https://github.com/intel/torch-ccl.git && cd torch-ccl
+# git submodule sync
+# git submodule update --init --recursive
+# python3.7 setup.py install
+```
 
 ## Install 1D convolution module
 ```bash
