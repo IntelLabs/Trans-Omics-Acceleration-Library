@@ -34,12 +34,17 @@ using namespace std;
 
 template<typename rmi_key_t, typename rmi_val_t>
 class lisa_hash{
+	public:
+
+		rmi_val_t* p;
+		rmi_val_t* p_bin;
+
 	private:
 
 		rmi_key_t* keys;
 
 		uint64_t* values_enc;
-		rmi_val_t* p;
+		uint64_t* values_enc_bin;
 		
 		uint64_t keys_size;
 		uint64_t p_size;
@@ -56,9 +61,16 @@ class lisa_hash{
 			values_enc = (uint64_t*)malloc(hash_size*sizeof(uint64_t));
 			
 			p = (rmi_val_t*)malloc(p_size*sizeof(rmi_val_t));
+			
+			//values_enc_bin = (uint64_t*)malloc(hash_size*sizeof(uint64_t));
+			
+			//p_bin = (rmi_val_t*)malloc(p_size*sizeof(rmi_val_t));
+
 			keys_size = hash_size;
 		//	keys[-1] = keys_size;	
 			this->p_size = p_size;
+
+			fprintf(stderr, "Memory allocated %lld \n", p_size);
 
 		}
 		//This function is no longer used. 	
@@ -102,6 +114,33 @@ class lisa_hash{
 
 		
 
+		void load_bin(string inputFile){
+			fprintf(stderr, "Loading from bin\n");
+
+			string f1_name = (string) inputFile + "_pos_bin";
+			string f2_name = (string) inputFile + "_val_bin";
+			ifstream instream_f1(f1_name, ifstream::binary);
+			ifstream instream_f2(f2_name, ifstream::binary);
+			instream_f1.seekg(0);
+			instream_f1.read((char*)&values_enc[0], keys_size*sizeof(uint64_t));
+			instream_f1.close();
+			
+			instream_f2.seekg(0);
+			instream_f2.read((char*)&p[0], p_size*sizeof(uint64_t));
+			instream_f2.close();
+			/*
+			for(uint64_t i = 0; i < p_size; i++){
+				if(p[i] != p_bin[i]){
+					fprintf(stderr, "Error!! %lld %lld\n",p[i], p_bin[i] );
+				}
+			}	
+			for(uint64_t i = 0; i < keys_size; i++){
+				if(values_enc[i] != values_enc_bin[i]){
+					fprintf(stderr, "Error!! %lld %lld\n", values_enc[i], values_enc_bin[i]);
+				}
+			}
+			*/	
+		}	
 	
 		void load(string inputFile){
 
@@ -129,7 +168,9 @@ class lisa_hash{
 
 	public:
 		lisa_hash(string inputFile, char* rmi_prefix, long leaf = 0){
-
+			uint64_t start_time, load_time, rmi_building_time, rmi_object;
+			start_time = __rdtsc();
+			
 			uint64_t val_count = 0;
 			
 			ifstream f_size(inputFile+"_size");
@@ -138,7 +179,8 @@ class lisa_hash{
 			mem_alloc(keys_size, p_size);
 	
 			fprintf(stderr, "Num_keys: %lld, num_values = %lld", keys_size, p_size);
-			load(inputFile);
+			//load(inputFile);
+			load_bin(inputFile);
 		
 			string prefix = inputFile + "_keys";
 #ifdef UINT64	
@@ -166,7 +208,10 @@ class lisa_hash{
 					cout<<"Using default number of leaf nodes: "<<keys_size/32<<"\n";
 					leaf = keys_size/32;
 				}							
-	
+				load_time = __rdtsc() - start_time;
+				start_time = __rdtsc();
+				fprintf(stderr,"TIMER LOG: kay-val files loading time- %lld\n", load_time);
+
 				//string script = "./scripts/build_rmi.sh";
 				string script = "./scripts/build-rmi.linear_spline.linear.sh";
 				string keys_path = " " + keys_bin_file_name;
@@ -179,8 +224,11 @@ class lisa_hash{
 #endif	
 				string cmd = script + keys_path + rmi_path + num_leaf + key_type;				
 				system(cmd.c_str());
+			        rmi_building_time = __rdtsc() - start_time;
+				fprintf(stderr,"TIMER LOG: rmi building time- %lld\n", rmi_building_time);
 			}
 			rmi = new RMI<rmi_key_t>(&prefix[0]);
+			
 
 		}		
 		
