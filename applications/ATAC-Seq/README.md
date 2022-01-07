@@ -142,4 +142,4 @@ numactl --membind 0 -C 1-27 python $atacworks/scripts/main.py train \
         --val_files $atacworks/Mono.50.2400.val.h5                           
 ```
 
-Option - Another option to use on machines without NUMA --- "taskset -c 1-3 python "
+Option - Another option to use on machines without NUMA --- "taskset -c 1-27 python ..."
