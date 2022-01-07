@@ -127,16 +127,19 @@ python $atacworks/scripts/bw2h5.py \
 ## Set affinity and threads
 ```bash
 export KMP_AFFINITY=compact,1,0,granularity=fine
-export OMP_NUM_THREADS=27                           # (Available cores - 1)
+export OMP_NUM_THREADS=27                           # (Available cores (N) - 1)
 ```
 
 ## Training run
 ```python
-numactl --membind 0 -C 1-27 python $atacworks/scripts/main.py train \
+# In numactl command, "-C 1-27" is for running on cores 1 to 27. 
+# General case for an N core machine is "-C 1-(N-1)".  
+
+numactl --membind 0 -C 1-27 python $atacworks/scripts/main.py train \              
         --config configs/train_config.yaml \
         --config_mparams configs/model_structure.yaml \
         --files_train $atacworks/Mono.50.2400.train.h5 \
-        --val_files $atacworks/Mono.50.2400.val.h5
+        --val_files $atacworks/Mono.50.2400.val.h5                           
 ```
 
 Option - Another option to use on machines without NUMA --- "taskset -c 1-3 python "
