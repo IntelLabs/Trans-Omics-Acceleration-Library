@@ -26,7 +26,7 @@ conda activate Atac
 ## Clone the libxsmm repository and set library path
 ```bash
 cd /home/
-git clone https://github.com/hfp/libxsmm.git
+git clone https://github.com/libxsmm/libxsmm.git
 cd /home/libxsmm
 git checkout b3da2b1bed9d27f9d6bae91a683f8cf76fe299b5
 make -j                   # Use AVX=2 for AVX2 and AVX=3 for AVX512
