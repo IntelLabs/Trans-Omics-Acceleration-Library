@@ -39,10 +39,15 @@ export LD_LIBRARY_PATH=/home/libxsmm/lib/
 git clone --branch v0.2.0 https://github.com/clara-parabricks/AtacWorks.git
 ```
 
+## Clone the OpenOmics version
+```bash
+git clone https://github.com/IntelLabs/Trans-Omics-Acceleration-Library.git
+```
+
 ## Apply patch
 ```bash
 cd  /home/AtacWorks/
-git apply Trans-Omics-Acceleration-Library/applications/ATAC-Seq/AtacWorks_cpu_optimization_patch.patch
+git apply /home/Trans-Omics-Acceleration-Library/applications/ATAC-Seq/AtacWorks_cpu_optimization_patch.patch
 ```
 
 ## Install python packages
