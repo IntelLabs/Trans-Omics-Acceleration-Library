@@ -3,8 +3,8 @@
 #SBATCH -o /home/test_output.%j.out
 #SBATCH -D /home/AtacWorks/
 #SBATCH -J AtacworkJob_CPU
-#SBATCH --nodes=2
-#SBATCH --ntasks=4
+#SBATCH --nodes=8
+#SBATCH --ntasks=16
 #SBATCH --cpus-per-task=64
 ##SBATCH --time=8:00:00
 
@@ -20,13 +20,13 @@ atacworks=/home/AtacWorks/
 
 export KMP_AFFINITY=compact,1,0,granularity=fine
 
-export OMP_NUM_THREADS=26       # number of cores in NUMA domain 0
+export OMP_NUM_THREADS=30       # number of cores - 2 (N - 2)
 
 export LD_PRELOAD=/home/libtcmalloc.so 
 export LD_PRELOAD=/home/libjemalloc.so
 
-mpiexec.hydra -np 16 -l -genv I_MPI_PIN_DOMAIN=[0x00000000FFFFFFFC,0xFFFFFFFC00000000] -genv CCL_WORKER_AFFINITY=0,28 \
-                        -genv CCL_WORKER_COUNT=1 -genv OMP_NUM_THREADS=26 \
+mpiexec.hydra -np 16 -l -genv I_MPI_PIN_DOMAIN=[0x00000000FFFFFFFC,0xFFFFFFFC00000000] -genv CCL_WORKER_AFFINITY=0,32 \
+                        -genv CCL_WORKER_COUNT=1 -genv OMP_NUM_THREADS=30 \
                         python $atacworks/scripts/main.py train \
                         --config configs/train_config.yaml \
                         --config_mparams configs/model_structure.yaml \

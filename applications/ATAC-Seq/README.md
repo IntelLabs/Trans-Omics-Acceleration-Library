@@ -127,19 +127,41 @@ python $atacworks/scripts/bw2h5.py \
 ## Set affinity and threads
 ```bash
 export KMP_AFFINITY=compact,1,0,granularity=fine
-export OMP_NUM_THREADS=27                           # (Available cores (N) - 1)
+export LD_PRELOAD=/home/libtcmalloc.so              # Copy these files in the /home folder first
+export LD_PRELOAD=/home/libjemalloc.so
+export OMP_NUM_THREADS=31                           # (Available cores (N) - 1)
 ```
 
-## Training run
+## Training run (Single Socket)
 ```python
-# In numactl command, "-C 1-27" is for running on cores 1 to 27. 
-# General case for an N core machine is "-C 1-(N-1)".  
+# In numactl command, "-C 1-31" is for running on cores 1 to 31. 
+# General case for an N core machine is "-C 1-(N-1)".
+# Keep batch size in config/train_config.yaml to a multiple of (N-1) for optimum performance
 
-numactl --membind 0 -C 1-27 python $atacworks/scripts/main.py train \              
+numactl --membind 0 -C 1-31 python $atacworks/scripts/main.py train \
         --config configs/train_config.yaml \
         --config_mparams configs/model_structure.yaml \
         --files_train $atacworks/Mono.50.2400.train.h5 \
         --val_files $atacworks/Mono.50.2400.val.h5                           
 ```
 
-Option - Another option to use on machines without NUMA --- "taskset -c 1-27 python ..."
+Option - Another option to use on machines without NUMA --- "taskset -c 1-31 python ..."
+
+## Training run (Multiple Sockets/Nodes)
+
+``` bash
+export OMP_NUM_THREADS=30                           # (Available cores (N) - 2)
+# 1. change line 23 in configs/train_config.yaml with the following
+#        dist-backend: 'gloo' 
+# 2. change line 22 in configs/train_config.yaml with the following
+#        dist-backend: 'gloo'
+# 3. Keep batch size (bs) in config/train_config.yaml to a multiple of (N-2) for optimum performance. 
+#    Batch size gets multiplied by number of socket. Hence, if bs=30, no. of sockets = 16 than batch size = 30*16 = 480
+# 4. Comment line the following line (79,80) in AtacWorks/claragenomics/dl4atac/utils.py and reinstall AtacWorks using "pip install ." command.
+#       if (os.path.islink(latest_symlink)):
+#               os.remove(latest_symlink)
+# 5. Run the following Slurm batch script that uses MPI commands.
+
+sbatch Batchfile_CPU.slurm
+
+```
