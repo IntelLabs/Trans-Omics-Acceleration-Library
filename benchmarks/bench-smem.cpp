@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
     }
     printf("totalSmems = %ld\n", totalSmem);
 
-#ifdef PRINT_OUTPUT
+#if 1 //PRINT_OUTPUT
     int32_t prevRid = -1;
     for(batch_id = 0; batch_id < num_batches; batch_id++)
     {
@@ -281,8 +281,8 @@ int main(int argc, char **argv) {
             }
             prevRid = smem.rid;
             printf("[%u,%u]", smem.m, smem.n + 1);
-            // printf("%u, %u]", smem.k, smem.s);
-#if 1
+            printf("[%u, %u]", smem.k, smem.s);
+#if 0
             printf(" ["); 
             int64_t u1, u2, u3;
             u1 = smem.k;

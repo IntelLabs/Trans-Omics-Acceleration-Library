@@ -30,32 +30,33 @@ ifeq ($(huge_page), 1)
 endif
 
 LISA_CC = icpc 
-LISA_CFLAGS = -DSAIS=1 -std=c++17 -xCORE-AVX512 -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
+LISA_CFLAGS = -DSAIS=1 -std=c++17 -Dlisa_fmi_ -xCORE-AVX512 -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
 LISA_CPPFLAGS = -DOUTPUT ${HP} -DNO_DNA_ORD -DREV_COMP -DBWA_MEM_BUG -DNOCHUNK -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
 LISA_CPPFLAGS_EXACT_SEARCH = ${HP} -DNO_DNA_ORD -DBWA_MEM_BUG -DNOCHUNK -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
 LISA_BUILD_RMI_FLAGS = -DBWA_MEM_BUG -DNOCHUNK -xCORE-AVX512  -DVECTORIZE -DENABLE_PREFETCH -D_64BIT 
-LISA_INCLUDE = -I src/ -I ../ext/ -I ../ext/safestringlib/include/
+#LISA_INCLUDE = -I src/ -I ../ext/ -I ../ext/safestringlib/include/ -I ~/mem2-lisa/git-scratchpad/bwa-mem2/ext/TAL-LISA-dev/src/FMI/ -I ~/mem2-lisa/git-scratchpad/bwa-mem2/src/ 
+LISA_INCLUDE = -I src/ -I ../ext/ -I ../ext/safestringlib/include/ -I ../src/FMI/ #-I ~/mem2-lisa/git-scratchpad/bwa-mem2/src/ 
 LISA_LDLIBS = -lz -L./.. -ltal -L ../ext/safestringlib/ -lsafestring 
 
-
-
+#OBJ_CPP = ~/mem2-lisa/git-scratchpad/bwa-mem2/ext/TAL-LISA-dev/src/FMI/*.cpp ./src/*.cpp
+OBJ_CPP = ../src/FMI/*.cpp ./src/*.cpp
 
 VTUNE = -DVTUNE_ANALYSIS -I/swtools/intel/vtune_amplifier/include/ -littnotify -L/swtools/intel/vtune_amplifier/lib64/ 
 
 lisa: smem-lisa exact-search-lisa build-index-forward-only-lisa build-index-with-rev-complement-lisa
 smem-lisa: benchmarks/bench-smem-lisa.cpp
-	${LISA_CC} ${LISA_CFLAGS} ${LISA_CPPFLAGS} ${LISA_INCLUDE} benchmarks/bench-smem-lisa.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o smem-lisa.o
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_CPPFLAGS} ${LISA_INCLUDE} ${OBJ_CPP}  benchmarks/bench-smem-lisa.cpp  ${LISA_LDLIBS} -DPRINT_OUTPUT -o smem-lisa.o
 
 
 exact-search-lisa: benchmarks/bench-fixed-len-e2e-match-lisa.cpp
-	${LISA_CC} ${LISA_CFLAGS} ${LISA_CPPFLAGS_EXACT_SEARCH} ${LISA_INCLUDE} -DENABLE_PREFETCH_OPT benchmarks/bench-fixed-len-e2e-match-lisa.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o exact-search-lisa.o 
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_CPPFLAGS_EXACT_SEARCH} ${LISA_INCLUDE} -DENABLE_PREFETCH_OPT ${OBJ_CPP} benchmarks/bench-fixed-len-e2e-match-lisa.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o exact-search-lisa.o 
 
 
 build-index-forward-only-lisa: benchmarks/build-lisa-index.cpp
-	${LISA_CC} ${LISA_CFLAGS} ${LISA_BUILD_RMI_FLAGS} ${LISA_INCLUDE} benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-forward-only-lisa.o
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_BUILD_RMI_FLAGS} ${LISA_INCLUDE} ${OBJ_CPP} benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-forward-only-lisa.o
 
 build-index-with-rev-complement-lisa: benchmarks/build-lisa-index.cpp
-	${LISA_CC} ${LISA_CFLAGS} ${LISA_BUILD_RMI_FLAGS} -DREV_COMP ${LISA_INCLUDE} benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-with-rev-complement-lisa.o
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_BUILD_RMI_FLAGS} -DREV_COMP ${LISA_INCLUDE} ${OBJ_CPP} benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-with-rev-complement-lisa.o
 
 clean:
 	rm *.o 

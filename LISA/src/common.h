@@ -23,6 +23,8 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <vector>
 #include <cstring>
@@ -45,6 +47,9 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <future>
 #include <omp.h>
 #include <array>
+#include <immintrin.h>
+#include <iostream>
+#include "FMI_search.h"
 using namespace std;
 
 #ifndef __rdtsc 
@@ -61,6 +66,12 @@ using namespace std;
 
 #ifndef _MM_HINT_NT
 #define _MM_HINT_NT _MM_HINT_NTA
+#endif 
+
+#ifdef ENABLE_PREFETCH
+#define my_prefetch(a, b) _mm_prefetch(a, b)
+#else
+#define my_prefetch(a, b)
 #endif 
 
 template<typename T>
@@ -88,24 +99,18 @@ constexpr int dna_ord(const char &a) {
 #endif 
 }
 
-#ifdef _64BIT 
+//#ifdef _64BIT 
     typedef int64_t index_t;
-#else 
-    typedef uint32_t index_t;
-#endif
+//#else 
+//    typedef uint32_t index_t;
+//#endif
 
 
 class SMEM_out {
     public:
 	    int id, q_l, q_r; 
 	    index_t ref_l, ref_r;
-	    SMEM_out(int _id, int _q_l, int _q_r, index_t _ref_l, index_t _ref_r){
-		    id = _id;
-		    q_l = _q_l;
-		    q_r = _q_r;
-		    ref_l = _ref_l;
-		    ref_r = _ref_r;	
-	    }
+	    SMEM_out(int _id, int _q_l, int _q_r, index_t _ref_l, index_t _ref_r);
 
 };
 
@@ -115,9 +120,7 @@ class vector_based_output {
 		int id;
 		vector<pair<int, int>> qPos;
 		vector<pair<index_t, index_t>> refPos;
-		vector_based_output(int a){ id  = a;
-
-		}
+		vector_based_output(int a);
 };
 
 
@@ -125,8 +128,8 @@ class Output {
 	public:
 		int id;
 		SMEM_out* smem;
-		Output(int a){ id  = a;
-		}
+		SMEM* tal_smem;
+		Output(int a);
 };
 
  
@@ -134,61 +137,23 @@ struct Info {
     // TODO use big int?
     const char* p;
     int l, r; 
+    int len;
     uint64_t id;
-    pair<index_t, index_t> intv;
+    pair<index_t, index_t> intv; //mem2: <l, l+s>
+    int min_intv;
+    int mid;
+    
+    //int smem_id;
+    int prev_l;
+    void set(int a, int b, index_t c, index_t d);
 
-
-
-
-	void set(int a, int b, index_t c, index_t d){
-		l = a; r = b; intv = make_pair(c,d);
-	}
-	void print(){
-//		printf(" %d %d %lld %lld %lld %d %d ", l, r, intv.first, intv.second, intv.second - intv.first, numPrevSuccChk, treeShrinkLength);
-	}
-
-
-    uint64_t get_enc_str(){
-	uint64_t nxt_ext = 0;
-	int i = l - 21; //K;
-	//TODO: hard coded K
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-	nxt_ext = (nxt_ext<<2) | dna_ord(p[i++]);
-
-	return nxt_ext;
-    }
-
-    void printRead(){
-	printf(">\n");
-	for(int i = 0; i < r; i++){
-		printf("%c",p[i]);
-	}
-	printf("\n");
-	
-	
-    }   
-
+    uint64_t get_enc_str();
 };
 
+typedef pair<uint64_t, uint64_t> ipbwt_t;
+
+void load(string filename, vector<char*> ptrs, vector<size_t> sizes);
+
+void save(string filename, vector<char*> ptrs, vector<size_t> sizes);
+int64_t FCLAMP(double inp, double bound);
+#endif

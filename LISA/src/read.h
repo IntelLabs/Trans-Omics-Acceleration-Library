@@ -27,7 +27,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <zlib.h>
 #include "kseq.h"
 #include "utils.h"
-#include "bwa.h"
+//#include "bwa.h"
 KSEQ_INIT(gzFile, gzread)
 
 

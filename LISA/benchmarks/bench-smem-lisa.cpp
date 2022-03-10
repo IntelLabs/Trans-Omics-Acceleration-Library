@@ -24,11 +24,15 @@ SOFTWARE.
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
 #include "qbwt-rmi-batched.h"
+#include "read.h"
 #include <fstream>
 // Batch pools
 #define pool_size 30000
 int batch_size = 10000;
 
+bool tal_smem_sort(SMEM a, SMEM b) { 
+	return a.rid < b.rid || (a.rid == b.rid && a.m < b.m);
+}
 
 bool smem_sort(SMEM_out a, SMEM_out b) { 
 	return a.id < b.id || (a.id == b.id && a.q_l < b.q_l);
@@ -88,9 +92,11 @@ int main(int argc, char** argv) {
 	fi>>size_file;
 	eprintln("Read ref file done. %lld",  size_file);
 	 
+//    FMI_search *fmiSearch = new FMI_search(argv[1]);
+//    fmiSearch->load_index_with_rev_complement();
 
 	QBWT_HYBRID<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
-
+//	qbwt.fmiSearch = fmiSearch;
 
 	int64_t qs_size ;
 	vector<Info> qs;
@@ -104,6 +110,9 @@ int main(int argc, char** argv) {
 			q.l = q.r = j-i;
 			q.intv = {0, qbwt.n};
 
+			q.prev_l = q.l; 
+			q.min_intv = 0;
+			q.mid = 0;
 #ifdef NO_DNA_ORD 
 			for(int k=0; k<q.r; k++) {
 				queries[i+k] = __lg(queries[i+k]-'A'+2)-1; // "ACGT" -> 0123
@@ -137,7 +146,8 @@ int main(int argc, char** argv) {
 	int64_t perThreadQuota = qs.size()/numThreads + 1;
 
 	int64_t num_batches = ceil((double)qs_size/parallel_batch_size);	
-	SMEM_out** batch_start = (SMEM_out**)malloc(num_batches * sizeof(SMEM_out*));
+	//SMEM_out** batch_start = (SMEM_out**)malloc(num_batches * sizeof(SMEM_out*));
+	SMEM** batch_start = (SMEM**)malloc(num_batches * sizeof(SMEM*));
 	int64_t* num_smem_per_batch = (int64_t*)malloc(num_batches * sizeof(int64_t)); 
 	
 	
@@ -149,7 +159,8 @@ int main(int argc, char** argv) {
 		int tid = omp_get_thread_num();	
 
 		output[tid] = Output(tid);
-		output[tid].smem = (SMEM_out*) malloc(vAnsAllocation * sizeof(SMEM_out));
+		//output[tid].smem = (SMEM_out*) malloc(vAnsAllocation * sizeof(SMEM_out));
+		output[tid].tal_smem = (SMEM*) malloc(vAnsAllocation * sizeof(SMEM));
 
 #pragma omp for schedule(dynamic, 1) 
 		for(int64_t i = 0; i < qs_size; i = i + parallel_batch_size){
@@ -157,22 +168,29 @@ int main(int argc, char** argv) {
 			int64_t qs_sz = ((i + parallel_batch_size) <= qs_size)? parallel_batch_size: qs_size - i;
 			int64_t batch_id = i/parallel_batch_size;
 			int64_t prev_smem_count = v_td[tid].numSMEMs;	
-			batch_start[batch_id] = output[tid].smem + prev_smem_count;
+			//batch_start[batch_id] = output[tid].smem + prev_smem_count;
+			batch_start[batch_id] = output[tid].tal_smem + prev_smem_count;
 		
 			// Ensures thread local memory is sufficient
 			if((vAnsAllocation -  v_td[tid].numSMEMs < max_query_len * qs_sz)){
 				eprintln("Insufficient memory!! Allocating more memory for stroing SMEMs");
 				vAnsAllocation *= 2;
                 
-				output[tid].smem = (SMEM_out *)realloc(output[tid].smem, vAnsAllocation * sizeof(SMEM_out)); 
+				//output[tid].smem = (SMEM_out *)realloc(output[tid].smem, vAnsAllocation * sizeof(SMEM_out)); 
+				output[tid].tal_smem = (SMEM *)realloc(output[tid].tal_smem, vAnsAllocation * sizeof(SMEM)); 
 			}
 			// SMEM search
-			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len);
-		
+	#ifdef lisa_fmi
+			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, NULL);
+	#else 
+			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, qbwt.fmiSearch);
+
+	#endif	
 			num_smem_per_batch[batch_id] = v_td[tid].numSMEMs - prev_smem_count;
 			
 			//Sort SMEM to rearrange the SMEMs within a batch			
-			sort(batch_start[batch_id], batch_start[batch_id] + num_smem_per_batch[batch_id], smem_sort);
+			sort(batch_start[batch_id], batch_start[batch_id] + num_smem_per_batch[batch_id], tal_smem_sort);
+			//sort(batch_start[batch_id], batch_start[batch_id] + num_smem_per_batch[batch_id], smem_sort);
 			//qsort(batch_start[batch_id], num_smem_per_batch[batch_id], sizeof(SMEM_out), smem_qsort);
 		}
 	}
@@ -204,11 +222,12 @@ int main(int argc, char** argv) {
 		int64_t num_smem =  num_smem_per_batch[i];
 
 		for(int j = 0; j < num_smem; j++){
-			while (prev_qid <= batch_start[i][j].id){
+			while (prev_qid <= batch_start[i][j].rid){
 				printf("%lld:\n", prev_qid);
 				prev_qid++;
 			}
-			printf("[%d,%d][%lld, %lld]\n", batch_start[i][j].q_l, batch_start[i][j].q_r, batch_start[i][j].ref_l, batch_start[i][j].ref_r - batch_start[i][j].ref_l);		
+		//	printf("[%d,%d][%lld, %lld]\n", batch_start[i][j].q_l, batch_start[i][j].q_r, batch_start[i][j].ref_l, batch_start[i][j].ref_r - batch_start[i][j].ref_l);		
+			printf("[%d,%d][%lld, %lld]\n", batch_start[i][j].m, batch_start[i][j].n + 1, batch_start[i][j].k, batch_start[i][j].s);// - batch_start[i][j].ref_l);		
 		}
 	}
 

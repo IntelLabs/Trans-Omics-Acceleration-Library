@@ -24,11 +24,12 @@ SOFTWARE.
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
 
-
-
+#ifndef IPBWT_RMI_H 
+#define IPBWT_RMI_H
 #ifdef VECTORIZE
 #include <immintrin.h>
 #endif 
+#include "common.h"
 #include <omp.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -42,6 +43,8 @@ enum query_state
 };
 #endif
 
+        
+
 template<typename index_t, typename kenc_t>
 class IPBWT_RMI {
     public:
@@ -50,7 +53,6 @@ class IPBWT_RMI {
         IPBWT_RMI(const string &t, index_t t_size, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa = NULL);
         ~IPBWT_RMI();
 
-        typedef pair<uint64_t, uint64_t> ipbwt_t;
         struct ref_pos_t;
 #ifdef ENABLE_PREFETCH
         struct BatchMetadata;
@@ -104,6 +106,7 @@ class IPBWT_RMI {
         double to_floating_point(pair<uint64_t, uint64_t> p) const;
         index_t get_guess_from_rmi(ipbwt_t ipb_x, index_t *err) const;
         index_t last_mile_from_guess(ipbwt_t ipb_x, index_t guess, index_t err) const;
+/*
 	
 inline ipbwt_t ipbwt(uint64_t chunk, uint64_t pos) const 
 { 
@@ -119,38 +122,13 @@ inline ipbwt_t ipbwt(const index_t &i) const
     uint64_t first = ((uint16_t *)(base_addr + 8))[0];
     return {first, second}; 
 }
-
-inline uint64_t get_ref_pos(ref_pos_t A, index_t i)
-{
-    uint64_t sa_ms_byte = A.ms_byte[i];
-    uint64_t sa_ls_word = A.ls_word[i];
-    uint64_t pos = (sa_ms_byte << 32) + sa_ls_word;
-    return pos;
-}
-
-inline kenc_t get_enc_rev_comp(kenc_t nxt_ext, int K = 21) {
-		
-	auto temp = nxt_ext;
-	temp = ~temp;
-	kenc_t new_ext = 0, mask = 3;
-
-	for (int i = 0; i < K; i++){
-		new_ext = new_ext << 2 | temp & mask;
-		temp = temp >>2;
-	}
-	return new_ext;
-}
-
-inline kenc_t get_enc_suffix(kenc_t nxt_ext, int suffix_length, int K = 21){
-
-	kenc_t new_ext;
-	nxt_ext = nxt_ext << ((64 - 2*K) + 2*(K - (suffix_length + 1)));
-	new_ext = nxt_ext >> (64 - 2*K);
-	return new_ext;
-}
-
+*/
+	ipbwt_t ipbwt(uint64_t chunk, uint64_t pos) const;
+	ipbwt_t ipbwt(const index_t &i) const;
+	uint64_t get_ref_pos(ref_pos_t A, index_t i);
+	kenc_t get_enc_rev_comp(kenc_t nxt_ext, int K = 21);
+	kenc_t get_enc_suffix(kenc_t nxt_ext, int suffix_length, int K = 21);
 };
-
 
 template<typename index_t, typename kenc_t> 
 struct IPBWT_RMI<index_t, kenc_t>::ref_pos_t
@@ -174,29 +152,51 @@ struct IPBWT_RMI<index_t, kenc_t>::BatchMetadata
 
 #endif
 
-void load(string filename, vector<char*> ptrs, vector<size_t> sizes) {
-    ifstream instream(filename.c_str(), ifstream::binary);
-    instream.seekg(0);
-    assert(ptrs.size() == sizes.size());
-    for(size_t i=0; i<ptrs.size(); i++) {
-        instream.read(ptrs[i], sizes[i]);
-    }
-    instream.close();
+template<typename index_t, typename kenc_t> 
+inline ipbwt_t IPBWT_RMI<index_t, kenc_t>::ipbwt(uint64_t chunk, uint64_t pos) const 
+{ 
+    uint64_t second = (pos & POS_MASK) + (chunk << NUM_POS_BITS);
+    uint64_t first = chunk >> (64 - NUM_POS_BITS);
+    return {first, second}; 
+}
+template<typename index_t, typename kenc_t> 
+inline ipbwt_t IPBWT_RMI<index_t, kenc_t>::ipbwt(const index_t &i) const 
+{ 
+    uint8_t *base_addr = ipbwt_array + i * NUM_IPBWT_BYTES;
+    uint64_t second = ((uint64_t *)base_addr)[0];
+    uint64_t first = ((uint16_t *)(base_addr + 8))[0];
+    return {first, second}; 
+}
+template<typename index_t, typename kenc_t> 
+inline uint64_t IPBWT_RMI<index_t, kenc_t>::get_ref_pos(ref_pos_t A, index_t i)
+{
+    uint64_t sa_ms_byte = A.ms_byte[i];
+    uint64_t sa_ls_word = A.ls_word[i];
+    uint64_t pos = (sa_ms_byte << 32) + sa_ls_word;
+    return pos;
 }
 
-void save(string filename, vector<char*> ptrs, vector<size_t> sizes) {
-    ofstream outstream(filename.c_str(), ofstream::binary);
-    outstream.seekp(0);
-    assert(ptrs.size() == sizes.size());
-    for(size_t i=0; i<ptrs.size(); i++) {
-        outstream.write(ptrs[i], sizes[i]);
-    }
-    outstream.close();
+template<typename index_t, typename kenc_t> 
+inline kenc_t IPBWT_RMI<index_t, kenc_t>::get_enc_rev_comp(kenc_t nxt_ext, int K) {
+		
+	auto temp = nxt_ext;
+	temp = ~temp;
+	kenc_t new_ext = 0, mask = 3;
+
+	for (int i = 0; i < K; i++){
+		new_ext = new_ext << 2 | temp & mask;
+		temp = temp >>2;
+	}
+	return new_ext;
 }
 
-inline int64_t FCLAMP(double inp, double bound) {
-  if (inp < 0.0) return 0;
-  return (inp > bound ? bound : (int64_t)inp);
+template<typename index_t, typename kenc_t> 
+inline kenc_t IPBWT_RMI<index_t, kenc_t>::get_enc_suffix(kenc_t nxt_ext, int suffix_length, int K){
+
+	kenc_t new_ext;
+	nxt_ext = nxt_ext << ((64 - 2*K) + 2*(K - (suffix_length + 1)));
+	new_ext = nxt_ext >> (64 - 2*K);
+	return new_ext;
 }
 
 
@@ -840,7 +840,9 @@ inline void IPBWT_RMI<index_t, kenc_t>::last_mile_vectorized_search_final_step(i
    
     
     __mmask8 mask_gt = mask_gt_first | (mask_eq_first & mask_gt_second);
-    int32_t numgt = _mm_countbits_32(mask_gt & m_one_bits[m]);
+    //int32_t numgt = _mm_countbits_32(mask_gt & m_one_bits[m]);
+    int32_t numgt = _mm_popcnt_u32(mask_gt & m_one_bits[m]);
+    
     first = first + numgt;
     m = 0;
 }
@@ -1066,3 +1068,10 @@ void IPBWT_RMI<index_t, kenc_t>::backward_extend_multi_chunk_batched
         }
     }
 }
+
+
+
+
+
+
+#endif

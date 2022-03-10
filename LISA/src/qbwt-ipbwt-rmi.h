@@ -23,24 +23,34 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
+#ifndef QBWT_IPBWT_RMI_H
+#define QBWT_IPBWT_RMI_H
+#include "common.h"
 #include "fmi.h"
-#include "sais.h"
 #include "ipbwt_rmi.h"
+
+
+
 template<typename index_t>
 class QBWT_HYBRID {
     public:
+	QBWT_HYBRID(){};
         QBWT_HYBRID(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes);
         ~QBWT_HYBRID();
         pair<int,int>* all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length) const;
         pair<int,int>* print_all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length, const int &shift) const;
-        const index_t n;
+        index_t n;
         typedef typename FMI<index_t>::Interval Interval;
-        const Interval init_intv;
+        Interval init_intv;
         void forward_step(const char* p, Interval &intv, int &l, int &r) const;
         void backward_step(const char* p, Interval &intv, int &l, int &r) const;
 
     // private:
+#ifdef lisa_fmi
         FMI<index_t> *fmi;
+#else    
+	FMI_search *fmiSearch;// = new FMI_search(argv[1]);
+#endif
         typedef float linreg_t;
         typedef uint64_t kenc_t; 
         IPBWT_RMI<index_t, kenc_t> *rmi;
@@ -55,18 +65,21 @@ class QBWT_HYBRID {
         uint8_t *lcpp1;
         static constexpr uint8_t LCPP1_MAX = (1<<8)-1;
         vector<pair<index_t, index_t>> large_lcpp1;
-        inline int64_t get_lcp(index_t i) const {
-            return (lcpp1[i] == LCPP1_MAX ?
-                    (int64_t)lower_bound(large_lcpp1.begin(), large_lcpp1.end(), i,
-                        [&](pair<index_t, index_t> p, index_t q){return p.first < q;})->second:
-                    (int64_t)lcpp1[i]) - 1;
-        }
+        int64_t get_lcp(index_t i) const;
         pair<Interval, index_t> forward_shrink_phase(Interval intv, char a) const;
         pair<index_t, index_t> advance_chunk(kenc_t first, pair<index_t, index_t> intv) const;
         void load(string filename);
         void save(string filename) const;
-};
 
+	void test();
+};
+template<typename index_t>
+int64_t QBWT_HYBRID<index_t>::get_lcp(index_t i) const {
+    return (lcpp1[i] == LCPP1_MAX ?
+	    (int64_t)lower_bound(large_lcpp1.begin(), large_lcpp1.end(), i,
+		[&](pair<index_t, index_t> p, index_t q){return p.first < q;})->second:
+	    (int64_t)lcpp1[i]) - 1;
+}
 
 template<typename index_t>
 pair<index_t, index_t> QBWT_HYBRID<index_t>::advance_chunk(kenc_t first, pair<index_t, index_t> intv) const {
@@ -195,8 +208,7 @@ pair<typename FMI<index_t>::Interval, index_t> QBWT_HYBRID<index_t>::forward_shr
 }
 
 template<typename index_t>
-inline void QBWT_HYBRID<index_t>::\
-        forward_step(const char *p, Interval &intv, int &l, int &r) const
+inline void QBWT_HYBRID<index_t>::forward_step(const char *p, Interval &intv, int &l, int &r) const
 {
     index_t siz;
     tie(intv, siz) = forward_shrink_phase(intv, p[l-1]);
@@ -204,8 +216,7 @@ inline void QBWT_HYBRID<index_t>::\
 }
 
 template<typename index_t>
-inline void QBWT_HYBRID<index_t>::\
-        backward_step(const char *p, Interval &intv, int &l, int &r) const
+inline void QBWT_HYBRID<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r) const
 {
     for(int i=l-1; i>=0; i--) {
         auto next = fmi->backward_extend(intv, p[i]);
@@ -268,6 +279,27 @@ pair<int,int>* QBWT_HYBRID<index_t>::print_all_SMEMs(const char* p, const int p_
 
 
 template<typename index_t>
+void QBWT_HYBRID<index_t>::test(){
+	std::cout<<"Test called";
+}
+template<typename index_t>
+QBWT_HYBRID<index_t>::~QBWT_HYBRID(){
+	eprintln("qbwt rmi deallocated");
+	//delete fmi;
+	delete rmi;
+
+	delete lcpp1;
+
+#ifndef HUGE_PAGE
+	delete lcpi;
+#else
+	munmap(lcpi, sizeof(lcpi[0])*(n+1));
+#endif
+
+}
+
+
+template<typename index_t>
 QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes):
 #ifdef REV_COMP 
 #ifndef BWA_MEM_BUG 
@@ -290,9 +322,15 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
         bin_filename += string(".") + to_string(s);
     }
     if(ifstream(bin_filename.c_str()).good()) {
-        eprintln("Found existing %s!!", (char*)bin_filename.c_str());
-        load(bin_filename);
+        eprintln("Found existing interval tree file %s!!", (char*)bin_filename.c_str());
+        // Load interval tree
+	load(bin_filename);
+#ifdef lisa_fmi
         fmi = new FMI<index_t>(t.c_str(), n, NULL, "@"+dna, bin_filename);
+#else
+    	fmiSearch = new FMI_search(ref_seq_filename.c_str());
+    	fmiSearch->load_index_with_rev_complement();
+#endif
         rmi = new IPBWT_RMI<index_t, uint64_t>(t, n, rmi_filename, K, num_rmi_leaf_nodes, NULL);
         eprintln("Load successful.");
         eprintln("large lcp size = %lu", large_lcpp1.size());
@@ -306,7 +344,9 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
 
 
     assert(t.find('@') == string::npos && t.find('$') == string::npos);
-    
+    fprintf(stderr, "ref file name for fmi: %s \n", ref_seq_filename.c_str()); 
+   
+    fprintf(stderr, "*********************** 1 ***************************\n"); 
 #ifdef REV_COMP
 #ifndef BWA_MEM_BUG
     t.push_back('@');
@@ -326,23 +366,22 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
     assert(n == (index_t)t.size());
 
 
-
-
-
     vector<index_t> sa(n);
     if(numeric_limits<index_t>::max() > n && numeric_limits<index_t>::min() < 0) {
         saisxx(t.c_str(), sa.data(), (index_t)n);
     } else {
-        vector<int64_t> _sa(n);
-        saisxx(t.c_str(), _sa.data(), (int64_t)n);
-        for(index_t i=0;i<n;i++) sa[i]=_sa[i];
+       // vector<int64_t> _sa(n);
+       // saisxx(t.c_str(), _sa.data(), (int64_t)n);
+       // for(index_t i=0;i<n;i++) sa[i]=_sa[i];
+        saisxx(t.c_str(), sa.data(), (index_t)n);
     }
     
 
-    fmi = new FMI<index_t>(t.c_str(), sa.data(), "@"+dna, bin_filename); // do not directly call load/save!
-    rmi = new IPBWT_RMI<index_t, uint64_t>(t, rmi_filename, K, num_rmi_leaf_nodes, sa.data());
-
-    // build rnk = sa^(-1)
+    fprintf(stderr, "ref file name for fmi: %s \n", ref_seq_filename.c_str()); 
+	// build rnk = sa^(-1)
+    
+    // TODO: remove this memory allocation as it is not required for interval tree building
+    //rmi = new IPBWT_RMI<index_t, uint64_t>(t, rmi_filename, K, num_rmi_leaf_nodes, sa.data());
 
     // build lcp
     {
@@ -369,12 +408,20 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
                 write_lcp(rnk[i], me);
             }
             write_lcp(n, -1);
+
+	    rnk.clear();
+	    rnk.shrink_to_fit();
         }
         sort(large_lcpp1.begin(), large_lcpp1.end());
 
         eprintln("large lcp size = %lu", large_lcpp1.size());
         eprintln("large lcp space usage = %.6fN", (double)(large_lcpp1.size()*sizeof(large_lcpp1[0])*1.0/n));
+    
+
+       sa.clear();
+       sa.shrink_to_fit();
     }
+
 
     // build tree-structure of uni-lcps
     {
@@ -406,6 +453,12 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
         b_width.push_back({0,n+1});
         b_width.push_back({n,n+1});
 
+#ifdef lisa_fmi
+    fmi = new FMI<index_t>(t.c_str(), sa.data(), "@"+dna, bin_filename); // do not directly call load/save!
+#else
+    fmiSearch = new FMI_search(ref_seq_filename.c_str());
+    fmiSearch->load_index_with_rev_complement();
+#endif
 
         for(auto itl=dec_lcp_order.begin(), itr=itl; itl!=dec_lcp_order.end(); itl=itr) {
             for(itr++; itr!=dec_lcp_order.end() &&
@@ -430,8 +483,14 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
                 if(it+1==itr) {
                     uint8_t my_mask = 0;
                     for(int j=0;j<(int)dna.size();j++) {
-                        auto intv = fmi->backward_extend({l, r+1}, dna[j]);
-                        if(intv.low < intv.high) my_mask |= 1<<j;
+                        
+#ifdef lisa_fmi
+			auto intv = fmi->backward_extend({l, r+1}, dna[j]);
+			if(intv.low < intv.high) my_mask |= 1<<j;
+#else
+                        auto intv = fmiSearch->backwardExt_light({l, r+1}, j);
+                        if(intv.first < intv.second) my_mask |= 1<<j;
+#endif                   
                     }
                     lcpi[i].bw_ext_msk = my_mask;
                 }
@@ -447,19 +506,4 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
     eprintln("save done.");
 }
 
-template<typename index_t>
-QBWT_HYBRID<index_t>::~QBWT_HYBRID(){
-	eprintln("qbwt rmi deallocated");
-	delete fmi;
-	delete rmi;
-
-	delete lcpp1;
-
-#ifndef HUGE_PAGE
-	delete lcpi;
-#else
-	munmap(lcpi, sizeof(lcpi[0])*(n+1));
 #endif
-
-}
-

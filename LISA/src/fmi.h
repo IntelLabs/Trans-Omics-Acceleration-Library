@@ -23,8 +23,13 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
+#ifndef FMI_H
+#define FMI_H
+
 #include "sais.h"
 #include <sys/mman.h>
+
+
 template<typename index_t>
 class FMI {
     public: 
@@ -232,4 +237,5 @@ FMI<index_t>::~FMI(){
 #else
     munmap(occb, (sizeof(occb[0]) * 4 * m + 63) / 64 * 64);
 #endif
-} 
+}
+#endif
