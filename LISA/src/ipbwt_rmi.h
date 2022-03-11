@@ -205,11 +205,12 @@ inline kenc_t IPBWT_RMI<index_t, kenc_t>::gen_str_enc(const char *a, int len) co
     kenc_t str_enc = 0;
     int i;
     for(i=0; i<len && a[i]!='$'; i++) {
-#ifndef NO_DNA_ORD 
-        str_enc = (str_enc<<2) | dna_ord(a[i]);
-#else
-        str_enc = (str_enc<<2) | (a[i]);
-#endif 
+//#ifndef NO_DNA_ORD 
+        //str_enc = (str_enc<<2) | dna_ord(a[i]);
+        str_enc = (str_enc<<2) | __lg(a[i]-'A'+2)-1;
+//#else
+ //       str_enc = (str_enc<<2) | (a[i]);
+//#endif 
     }
     return str_enc << (2*(len-i)); // need this due to t.c_str() format
 }
@@ -427,13 +428,20 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
         //execv_argv[0] = ipbwt_f64_filename.c_str();
         //execv_argv[1] = rmi_filename.c_str();
         //execv_argv[2] = to_string(num_rmi_leaf_nodes);
-        int status = execl("./scripts/build-rmi.linear_spline.linear.sh",
+        
+	/*
+	int status = execl("./scripts/build-rmi.linear_spline.linear.sh",
               "./scripts/build-rmi.linear_spline.linear.sh",
               ipbwt_f64_filename.c_str(),
               rmi_filename.c_str(),
               to_string(num_rmi_leaf_nodes).c_str(), (char *)NULL);
-        eprintln("ERROR! execl failed with err %d, errno = %d: %s", status, errno, strerror( errno));
-        exit(0);
+        */
+	
+	//eprintln("ERROR! execl failed with err %d, errno = %d: %s", status, errno, strerror( errno));
+        //exit(0);
+        string shell_cmd = "./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes);
+	system(shell_cmd.c_str());
+ 
     }
 
     for(int i = 0; i < 4; i++)
@@ -660,13 +668,17 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
         //execv_argv[0] = ipbwt_f64_filename.c_str();
         //execv_argv[1] = rmi_filename.c_str();
         //execv_argv[2] = to_string(num_rmi_leaf_nodes);
-        int status = execl("./scripts/build-rmi.linear_spline.linear.sh",
+       
+/*
+	 int status = execl("./scripts/build-rmi.linear_spline.linear.sh",
               "./scripts/build-rmi.linear_spline.linear.sh",
               ipbwt_f64_filename.c_str(),
               rmi_filename.c_str(),
               to_string(num_rmi_leaf_nodes).c_str(), (char *)NULL);
-        eprintln("ERROR! execl failed with err %d, errno = %d: %s", status, errno, strerror( errno));
-        exit(0);
+*/
+        //eprintln("ERROR! execl failed with err %d, errno = %d: %s", status, errno, strerror( errno));
+        //exit(0);
+        string shell_cmd = "./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes);
     }
 
     for(int i = 0; i < 4; i++)

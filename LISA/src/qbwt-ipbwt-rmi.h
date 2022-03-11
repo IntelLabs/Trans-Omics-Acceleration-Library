@@ -302,11 +302,7 @@ QBWT_HYBRID<index_t>::~QBWT_HYBRID(){
 template<typename index_t>
 QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes):
 #ifdef REV_COMP 
-#ifndef BWA_MEM_BUG 
-    n(2*(index_t)t_size+2),
-#else
     n(2*(index_t)t_size+1),
-#endif
 #else 
     n(t_size+1),
 #endif 
@@ -348,21 +344,14 @@ QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filen
    
     fprintf(stderr, "*********************** 1 ***************************\n"); 
 #ifdef REV_COMP
-#ifndef BWA_MEM_BUG
-    t.push_back('@');
-#else
-    eprintln("No char placed between ref seq and reverse complement, to replicate BWA-MEM bug.");
-#endif
     // appending reverse complement
     for(int64_t i=(index_t)t.size()-1-(t.back()=='@');i>=0;i--) {
-#ifndef NO_DNA_ORD 
-        t.push_back(dna[3-dna_ord(t[i])]);
-#else 
         t.push_back(dna[3-(__lg(t[i]-'A'+2)-1)]);
-#endif 
     }
 #endif 
     t.push_back('$');
+
+    fprintf(stderr, "%ld: expected %ld: size of t\n", n, t.size());
     assert(n == (index_t)t.size());
 
 

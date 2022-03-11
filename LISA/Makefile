@@ -31,9 +31,9 @@ endif
 
 LISA_CC = icpc 
 LISA_CFLAGS = -DSAIS=1 -std=c++17 -Dlisa_fmi_ -xCORE-AVX512 -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
-LISA_CPPFLAGS = -DOUTPUT ${HP} -DNO_DNA_ORD -DREV_COMP -DBWA_MEM_BUG -DNOCHUNK -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
-LISA_CPPFLAGS_EXACT_SEARCH = ${HP} -DNO_DNA_ORD -DBWA_MEM_BUG -DNOCHUNK -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
-LISA_BUILD_RMI_FLAGS = -DBWA_MEM_BUG -DNOCHUNK -xCORE-AVX512  -DVECTORIZE -DENABLE_PREFETCH -D_64BIT 
+LISA_CPPFLAGS = -DOUTPUT ${HP} -DNO_DNA_ORD -DREV_COMP -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
+LISA_CPPFLAGS_EXACT_SEARCH = ${HP} -DNO_DNA_ORD -DVECTORIZE  -DENABLE_PREFETCH -D_64BIT
+LISA_BUILD_RMI_FLAGS = -DOUTPUT -DNO_DNA_ORD -xCORE-AVX512 -DVECTORIZE -DENABLE_PREFETCH -D_64BIT 
 #LISA_INCLUDE = -I src/ -I ../ext/ -I ../ext/safestringlib/include/ -I ~/mem2-lisa/git-scratchpad/bwa-mem2/ext/TAL-LISA-dev/src/FMI/ -I ~/mem2-lisa/git-scratchpad/bwa-mem2/src/ 
 LISA_INCLUDE = -I src/ -I ../ext/ -I ../ext/safestringlib/include/ -I ../src/FMI/ #-I ~/mem2-lisa/git-scratchpad/bwa-mem2/src/ 
 LISA_LDLIBS = -lz -L./.. -ltal -L ../ext/safestringlib/ -lsafestring 
