@@ -103,7 +103,7 @@ $(SAFE_STR_LIB):
 	cd ext/safestringlib/ && make clean && make CC=$(CC) directories libsafestring.a
 
 clean:
-	rm -fr src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+	rm -fr ./*.o src/FMI/*.o src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
 	cd ext/safestringlib && make CC=$(CC) clean
 
 depend:
