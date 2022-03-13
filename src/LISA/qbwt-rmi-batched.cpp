@@ -18,9 +18,9 @@ threadData::threadData(int64_t pool_size){
 		s_siz[i/2] = &s_siz_one_d[i];
 
 
-	QBWT_HYBRID<index_t>::LcpInfo* s_info_one_d = (QBWT_HYBRID<index_t>::LcpInfo*) aligned_alloc(64, sizeof(QBWT_HYBRID<index_t>::LcpInfo) * 2 * pool_size);
+	LISA_search<index_t>::LcpInfo* s_info_one_d = (LISA_search<index_t>::LcpInfo*) aligned_alloc(64, sizeof(LISA_search<index_t>::LcpInfo) * 2 * pool_size);
 
-	s_info = (QBWT_HYBRID<index_t>::LcpInfo**) aligned_alloc(64, sizeof(QBWT_HYBRID<index_t>::LcpInfo*)*pool_size);
+	s_info = (LISA_search<index_t>::LcpInfo**) aligned_alloc(64, sizeof(LISA_search<index_t>::LcpInfo*)*pool_size);
 	for(int64_t i = 0; i < 2*pool_size; i = i + 2)
 		s_info[i/2] = &s_info_one_d[i];
 
@@ -40,9 +40,9 @@ void threadData::dealloc_td(){
 
 	free(s_siz);
 
-	free(s_info[0]);// = (QBWT_HYBRID<index_t>::LcpInfo*) aligned_alloc(64, sizeof(QBWT_HYBRID<index_t>::LcpInfo) * 2 * pool_size);
+	free(s_info[0]);// = (LISA_search<index_t>::LcpInfo*) aligned_alloc(64, sizeof(LISA_search<index_t>::LcpInfo) * 2 * pool_size);
 
-	free(s_info);// = (QBWT_HYBRID<index_t>::LcpInfo**) aligned_alloc(64, sizeof(QBWT_HYBRID<index_t>::LcpInfo*)*pool_size);
+	free(s_info);// = (LISA_search<index_t>::LcpInfo**) aligned_alloc(64, sizeof(LISA_search<index_t>::LcpInfo*)*pool_size);
 
 	free(s_msk);// = (uint8_t*) aligned_alloc(64, sizeof(uint8_t) * pool_size);
 
@@ -50,11 +50,11 @@ void threadData::dealloc_td(){
 
 
 
-inline void s_pb(QBWT_HYBRID<index_t> &qbwt, Info &_q, int cnt, threadData &td) {
+inline void s_pb(LISA_search<index_t> &qbwt, Info &_q, int cnt, threadData &td) {
 
     Info &q = td.tree_pool[cnt]; 
     index_t* siz = td.s_siz[cnt]; 
-    QBWT_HYBRID<index_t>::LcpInfo* info = td.s_info[cnt]; 
+    LISA_search<index_t>::LcpInfo* info = td.s_info[cnt]; 
     uint8_t &msk = td.s_msk[cnt]; 
     q = _q;
     info[0] = qbwt.lcpi[q.intv.first]; info[1] = qbwt.lcpi[q.intv.second];
@@ -68,11 +68,11 @@ inline void s_pb(QBWT_HYBRID<index_t> &qbwt, Info &_q, int cnt, threadData &td) 
 
 
 
-void tree_shrink_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, threadData &td){
+void tree_shrink_batched( LISA_search<index_t> &qbwt, int cnt, threadData &td){
 
 	Info* tree_pool = td.tree_pool;
 	index_t** s_siz = td.s_siz;
-	QBWT_HYBRID<index_t>::LcpInfo** s_info = td.s_info;
+	LISA_search<index_t>::LcpInfo** s_info = td.s_info;
 	uint8_t* s_msk = td.s_msk;
 
 	Info* fmi_pool = td.fmi_pool;
@@ -92,7 +92,7 @@ void tree_shrink_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, threadData &td){
 }
 
 
-void fmi_shrink_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Info* output, int min_seed_len, FMI_search* tal_fmi){
+void fmi_shrink_batched( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Info* output, int min_seed_len, FMI_search* tal_fmi){
 
 	Info* tree_pool = td.tree_pool;
 	int &tree_cnt = td.tree_cnt;
@@ -186,7 +186,7 @@ void fmi_shrink_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, thr
 
 
 #if 0
-void fmi_extend_batched_exact_search( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len){
+void fmi_extend_batched_exact_search( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len){
 
 	Info* tree_pool = td.tree_pool;
 	int &tree_cnt = td.tree_cnt;
@@ -296,7 +296,7 @@ void fmi_extend_batched_exact_search( QBWT_HYBRID<index_t> &qbwt, int cnt, Info*
 
 #endif
 
-void fmi_extend_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi){
+void fmi_extend_batched( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi){
 
 	Info* tree_pool = td.tree_pool;
 	int &tree_cnt = td.tree_cnt;
@@ -433,7 +433,7 @@ void fmi_extend_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, thr
 	}
 }
 
-void smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, QBWT_HYBRID<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa, FMI_search* tal_fmi){
+void smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa, FMI_search* tal_fmi){
 	Info *chunk_pool = td.chunk_pool;
 	int &chunk_cnt = td.chunk_cnt;
 
@@ -535,7 +535,7 @@ void smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, QBWT_HYBRID
 
 
 #if 0
-void exact_search_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, QBWT_HYBRID<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa){
+void exact_search_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa){
 	Info *chunk_pool = td.chunk_pool;
 	int &chunk_cnt = td.chunk_cnt;
 
@@ -626,7 +626,7 @@ void exact_search_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, QBW
 }
 #endif
 
-void exact_search_rmi_batched_k3(Info *qs, int64_t qs_size, int64_t batch_size, QBWT_HYBRID<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi, int tid){
+void exact_search_rmi_batched_k3(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi, int tid){
 	
     uint64_t tim;// = __rdtsc();
 
@@ -749,7 +749,7 @@ int64_t bwtSeedStrategyAllPosOneThread_with_info( int32_t numReads,
                                                   int32_t minSeedLen,
                                                   SMEM *matchArray,
 						  FMI_search* tal_fmi,
-						  Info* qs, threadData &td,  QBWT_HYBRID<index_t> &qbwt, int tid)
+						  Info* qs, threadData &td,  LISA_search<index_t> &qbwt, int tid)
 {
     uint64_t tim;
     int64_t *intv_all = td.intv_all;
@@ -793,7 +793,7 @@ int64_t bwtSeedStrategyAllPosOneThread_with_info( int32_t numReads,
 }
 
 
-void fmi_forward_strategy_batched( QBWT_HYBRID<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Info* output, int min_seed_len){
+void fmi_forward_strategy_batched( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Info* output, int min_seed_len){
 
 	Info* tree_pool = td.tree_pool;
 	int &tree_cnt = td.tree_cnt;
@@ -867,7 +867,7 @@ int64_t bwtSeedStrategyAllPosOneThread_with_info_prefetch( int32_t numReads,
                                                   int32_t minSeedLen,
                                                   SMEM *matchArray,
 						  FMI_search* tal_fmi,
-						  Info* qs, threadData &td,  QBWT_HYBRID<index_t> &qbwt, int tid)
+						  Info* qs, threadData &td,  LISA_search<index_t> &qbwt, int tid)
 {
 	uint64_t tim;
 	int64_t *intv_all = td.intv_all;

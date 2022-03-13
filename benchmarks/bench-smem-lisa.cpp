@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 //    FMI_search *fmiSearch = new FMI_search(argv[1]);
 //    fmiSearch->load_index_with_rev_complement();
 
-	QBWT_HYBRID<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
+	LISA_search<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
 //	qbwt.fmiSearch = fmiSearch;
 
 	int64_t qs_size ;

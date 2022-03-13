@@ -32,11 +32,11 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 
 
 template<typename index_t>
-class QBWT_HYBRID {
+class LISA_search {
     public:
-	QBWT_HYBRID(){};
-        QBWT_HYBRID(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes);
-        ~QBWT_HYBRID();
+	LISA_search(){};
+        LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes);
+        ~LISA_search();
         pair<int,int>* all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length) const;
         pair<int,int>* print_all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length, const int &shift) const;
         index_t n;
@@ -74,7 +74,7 @@ class QBWT_HYBRID {
 	void test();
 };
 template<typename index_t>
-int64_t QBWT_HYBRID<index_t>::get_lcp(index_t i) const {
+int64_t LISA_search<index_t>::get_lcp(index_t i) const {
     return (lcpp1[i] == LCPP1_MAX ?
 	    (int64_t)lower_bound(large_lcpp1.begin(), large_lcpp1.end(), i,
 		[&](pair<index_t, index_t> p, index_t q){return p.first < q;})->second:
@@ -82,11 +82,11 @@ int64_t QBWT_HYBRID<index_t>::get_lcp(index_t i) const {
 }
 
 template<typename index_t>
-pair<index_t, index_t> QBWT_HYBRID<index_t>::advance_chunk(kenc_t first, pair<index_t, index_t> intv) const {
+pair<index_t, index_t> LISA_search<index_t>::advance_chunk(kenc_t first, pair<index_t, index_t> intv) const {
     return rmi->backward_extend_chunk(first, {intv.first, intv.second});
 }
 template<typename index_t>
-void QBWT_HYBRID<index_t>::load(string filename) {
+void LISA_search<index_t>::load(string filename) {
     ifstream instream(filename.c_str(), ifstream::binary);
     instream.seekg(0);
 
@@ -135,7 +135,7 @@ void QBWT_HYBRID<index_t>::load(string filename) {
 }
 
 template<typename index_t>
-void QBWT_HYBRID<index_t>::save(string filename) const {
+void LISA_search<index_t>::save(string filename) const {
     ofstream outstream(filename.c_str(), ofstream::binary);
     outstream.seekp(0);
 
@@ -167,7 +167,7 @@ void QBWT_HYBRID<index_t>::save(string filename) const {
 }
 
 template<typename index_t>
-pair<typename FMI<index_t>::Interval, index_t> QBWT_HYBRID<index_t>::forward_shrink_phase(Interval intv, char a) const {
+pair<typename FMI<index_t>::Interval, index_t> LISA_search<index_t>::forward_shrink_phase(Interval intv, char a) const {
 
     index_t e[2] = {intv.low, intv.high};
     LcpInfo info[2] = {lcpi[e[0]], lcpi[e[1]]};
@@ -208,7 +208,7 @@ pair<typename FMI<index_t>::Interval, index_t> QBWT_HYBRID<index_t>::forward_shr
 }
 
 template<typename index_t>
-inline void QBWT_HYBRID<index_t>::forward_step(const char *p, Interval &intv, int &l, int &r) const
+inline void LISA_search<index_t>::forward_step(const char *p, Interval &intv, int &l, int &r) const
 {
     index_t siz;
     tie(intv, siz) = forward_shrink_phase(intv, p[l-1]);
@@ -216,7 +216,7 @@ inline void QBWT_HYBRID<index_t>::forward_step(const char *p, Interval &intv, in
 }
 
 template<typename index_t>
-inline void QBWT_HYBRID<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r) const
+inline void LISA_search<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r) const
 {
     for(int i=l-1; i>=0; i--) {
         auto next = fmi->backward_extend(intv, p[i]);
@@ -226,7 +226,7 @@ inline void QBWT_HYBRID<index_t>::backward_step(const char *p, Interval &intv, i
 }
 
 template<typename index_t>
-pair<int,int>* QBWT_HYBRID<index_t>::all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length) const {
+pair<int,int>* LISA_search<index_t>::all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length) const {
     Interval intv = init_intv;
     auto end = ans_ptr;
     int l = p_len, r = p_len; // [l,r)
@@ -248,7 +248,7 @@ pair<int,int>* QBWT_HYBRID<index_t>::all_SMEMs(const char* p, const int p_len, p
 }
 
 template<typename index_t>
-pair<int,int>* QBWT_HYBRID<index_t>::print_all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length, const int &shift) const {
+pair<int,int>* LISA_search<index_t>::print_all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length, const int &shift) const {
     Interval intv = init_intv;
     vector<Interval> vs;
     auto end = ans_ptr;
@@ -279,11 +279,11 @@ pair<int,int>* QBWT_HYBRID<index_t>::print_all_SMEMs(const char* p, const int p_
 
 
 template<typename index_t>
-void QBWT_HYBRID<index_t>::test(){
+void LISA_search<index_t>::test(){
 	std::cout<<"Test called";
 }
 template<typename index_t>
-QBWT_HYBRID<index_t>::~QBWT_HYBRID(){
+LISA_search<index_t>::~LISA_search(){
 	eprintln("qbwt rmi deallocated");
 	//delete fmi;
 	delete rmi;
@@ -300,7 +300,7 @@ QBWT_HYBRID<index_t>::~QBWT_HYBRID(){
 
 
 template<typename index_t>
-QBWT_HYBRID<index_t>::QBWT_HYBRID(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes):
+LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes):
 #ifdef REV_COMP 
     n(2*(index_t)t_size+1),
 #else 
