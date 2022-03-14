@@ -31,27 +31,9 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 
 #include "qbwt-ipbwt-rmi.h"
 #include "chunkEncode.h"
-class threadData {
+#include "thread_data.h"
 
-	public:
-
-		Info *chunk_pool;
-		int chunk_cnt ;
-		uint64_t *str_enc;
-		int64_t *intv_all;
-		
-    		int64_t numSMEMs;
-		Info *fmi_pool;
-		int fmi_cnt;
-
-		Info *tree_pool;
-		int tree_cnt;
-		index_t **s_siz;
-		LISA_search<index_t>::LcpInfo **s_info;
-		uint8_t *s_msk;
-		threadData(int64_t pool_size);
-		void dealloc_td();
-};
+#if 0
 
 #define S_SWP_END do{\
         int c; \
@@ -108,35 +90,25 @@ class threadData {
 #define S_LOAD(i) \
             Info &q = tree_pool[i]; \
             index_t* siz = s_siz[i]; \
-            LISA_search<index_t>::LcpInfo* info = s_info[i]; \
+            /*LISA_search<index_t>::LcpInfo* info = s_info[i];*/ \
+            LcpInfo* info = s_info[i]; \
             uint8_t &msk = s_msk[i] 
+#endif
 
-
-
-
-inline void s_pb(LISA_search<index_t> &qbwt, Info &_q, int cnt, threadData &td);
+void s_pb(LISA_search<index_t> &qbwt, Info &_q, int cnt, threadData &td);
 
 void tree_shrink_batched( LISA_search<index_t> &qbwt, int cnt, threadData &td);
 
 void fmi_extend_batched( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi);
 
-// void fmi_extend_batched_exact_search( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Output* output, int min_seed_len);
 
 void fmi_shrink_batched( LISA_search<index_t> &qbwt, int cnt, Info* q_batch, threadData &td, Info* output, int min_seed_len, FMI_search* tal_fmi);
 
 void smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa = true, FMI_search* tal_fmi = NULL);
 
-//void exact_search_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, bool apply_lisa = true);
 
 void exact_search_rmi_batched_k3(Info *qs, int64_t qs_size, int64_t batch_size, LISA_search<index_t> &qbwt, threadData &td, Output* output, int min_seed_len, FMI_search* tal_fmi, int tid = 0);
 
-/*int64_t bwtSeedStrategyAllPosOneThread_with_info(
-                                                   int32_t numReads,
-                                                   int32_t minSeedLen,
-                                                   SMEM *matchArray,
-						FMI_search* tal_fmi,
-						Info* qs, threadData & td, LISA_search<index_t> &qbwt, int tid = 0);
-*/
 int64_t bwtSeedStrategyAllPosOneThread_with_info_prefetch(
                                                    int32_t numReads,
                                                    int32_t minSeedLen,

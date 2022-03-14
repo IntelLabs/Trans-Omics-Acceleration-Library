@@ -132,22 +132,28 @@ class Output {
 		Output(int a);
 };
 
- 
-struct Info {
-    // TODO use big int?
-    const char* p;
-    int l, r; 
-    int len;
-    uint64_t id;
-    pair<index_t, index_t> intv; //mem2: <l, l+s>
-    int min_intv;
-    int mid;
-    
-    //int smem_id;
-    int prev_l;
-    void set(int a, int b, index_t c, index_t d);
 
-    uint64_t get_enc_str();
+struct Info {
+	// TODO use big int?
+	const char* p;
+	int l, r; 
+	int len;
+	uint64_t id;
+	pair<index_t, index_t> intv; //mem2: <l, l+s>
+	int min_intv;
+	int mid;
+
+	//int smem_id;
+	int prev_l;
+	void set(int a, int b, index_t c, index_t d);
+
+	uint64_t get_enc_str();
+};
+
+
+struct LcpInfo {
+	uint16_t s_width: 12;
+	uint8_t bw_ext_msk: 4;
 };
 
 typedef pair<uint64_t, uint64_t> ipbwt_t;

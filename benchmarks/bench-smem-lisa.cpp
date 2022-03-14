@@ -23,7 +23,8 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
-#include "qbwt-rmi-batched.h"
+//#include "qbwt-rmi-batched.h"
+#include "qbwt-ipbwt-rmi.h"
 #include "read.h"
 #include <fstream>
 // Batch pools
@@ -183,7 +184,8 @@ int main(int argc, char** argv) {
 	#ifdef lisa_fmi
 			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, NULL);
 	#else 
-			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, qbwt.fmiSearch);
+			//smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, &qbwt);
+			qbwt.smem_rmi_batched(&qs[i], qs_sz, batch_size, v_td[tid], &output[tid], min_seed_len, true);
 
 	#endif	
 			num_smem_per_batch[batch_id] = v_td[tid].numSMEMs - prev_smem_count;
