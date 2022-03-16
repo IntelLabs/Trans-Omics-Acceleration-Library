@@ -29,8 +29,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 
 #include<fstream>
 #include <cstring>
-//#include "qbwt-rmi-batched.h"
-#include "qbwt-ipbwt-rmi.h"
+#include "LISA_search.h"
 #include "read.h"
 #include <immintrin.h>
 #include "sais.h"
@@ -41,14 +40,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <zlib.h>
 #include "bntseq.h"
 #include <omp.h>
-/*
-#ifdef _64BIT 
-    typedef int64_t index_t;
-#else 
-    typedef uint32_t index_t;
-#endif 
-*/
-//typedef int64_t index_t;
+
 int main(int argc, char** argv) {
 #ifdef VTUNE_ANALYSIS
     __itt_pause();
@@ -101,14 +93,11 @@ int main(int argc, char** argv) {
 { 
    LISA_search<int64_t> qbwt(seq_forward_only, seq_forward_only.size(), argv[1], K, num_rmi_leaf_nodes);
 }
-   
 
    string size_file_name = (string) argv[1] + "_SIZE";
    ofstream f_sz(size_file_name.c_str());
    f_sz<<(seq_forward_only.size());
-    
 #endif
-
    return 0;
 }
 

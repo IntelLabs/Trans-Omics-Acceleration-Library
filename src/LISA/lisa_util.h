@@ -23,8 +23,8 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef LISA_UTIL_H
+#define LISA_UTIL_H
 
 #include <vector>
 #include <cstring>
