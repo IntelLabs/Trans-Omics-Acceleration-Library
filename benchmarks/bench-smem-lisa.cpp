@@ -23,8 +23,7 @@ SOFTWARE.
 
 Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.misra@intel.com>
 *****************************************************************************************/
-//#include "qbwt-rmi-batched.h"
-#include "qbwt-ipbwt-rmi.h"
+#include "LISA_search.h"
 #include "read.h"
 #include <fstream>
 // Batch pools

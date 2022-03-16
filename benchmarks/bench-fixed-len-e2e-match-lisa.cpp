@@ -107,10 +107,6 @@ int main(int argc, char** argv) {
     seq.push_back('$');
 
 
-
-    
-
-
 string ref_seq_filename = argv[1];
 #ifdef REV_COMP
     string rmi_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
@@ -119,12 +115,10 @@ string ref_seq_filename = argv[1];
 #endif
 
 
-    //IPBWT_RMI<index_t, uint64_t> rmi(seq, rmi_filename, sa.data());
  
 
 
    IPBWT_RMI<index_t, uint64_t> rmi(seq, seq.size(), rmi_filename, K, num_rmi_leaf_nodes, NULL);
-//  IPBWT_RMI<index_t, uint64_t> rmi(seq, 3101804740, rmi_filename, K, num_rmi_leaf_nodes, NULL);
 
     int64_t numMatches = 0;
     //int64_t sorting_ticks = 0;
@@ -138,7 +132,6 @@ string ref_seq_filename = argv[1];
                 if(j == i) continue;
                 Info q;
                 q.p = queries.c_str() + i;
- //             q.q_len = j-i;
                 q.l = q.r = j - i;//q.q_len;
                 q.intv = {0, rmi.n};
 #ifdef NO_DNA_ORD 
@@ -158,8 +151,7 @@ string ref_seq_filename = argv[1];
 
     assert(str_enc != NULL && intv_all != NULL);
 
-	int numThreads = atoi(argv[5]);//56;
-//	int numThreads = 1;
+    int numThreads = atoi(argv[5]);
 
   #pragma omp parallel num_threads(numThreads)
   {
@@ -229,7 +221,7 @@ while(num_iter)
 
  
 
-#if ENABLE_PREFETCH_OPT
+#if ENABLE_PREFETCH
 
 	int64_t parallel_batch_size  = ceil((q_size/numThreads + 1)/80);
 	#pragma omp parallel num_threads(numThreads)

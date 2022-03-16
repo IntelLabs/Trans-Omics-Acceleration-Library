@@ -103,7 +103,7 @@ $(SAFE_STR_LIB):
 	cd ext/safestringlib/ && make clean && make CC=$(CC) directories libsafestring.a
 
 clean:
-	rm -fr ./*.o src/FMI/*.o src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+	rm -fr ./*.o src/FMI/*.o src/LISA-FMI/*.o src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
 	cd ext/safestringlib && make CC=$(CC) clean
 
 depend:
@@ -136,10 +136,10 @@ LISA_CFLAGS = -DSAIS=1 -std=c++17 -xCORE-AVX512 -Ofast -fopenmp -Wall -Wshadow -
 
 LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  
 
-LISA_INCLUDE = -I ./src/LISA/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
+LISA_INCLUDE = -I ./src/LISA-FMI/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
 LISA_LDLIBS = -lz -L./ -ltal -L ./ext/safestringlib/ -lsafestring 
 
-OBJ_CPP =  ./src/LISA/*.cpp
+OBJ_CPP =  ./src/LISA-FMI/*.cpp
 
 VTUNE = -DVTUNE_ANALYSIS -I/swtools/intel/vtune_amplifier/include/ -littnotify -L/swtools/intel/vtune_amplifier/lib64/ 
 
