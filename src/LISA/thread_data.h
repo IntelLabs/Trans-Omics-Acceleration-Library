@@ -3,7 +3,7 @@
 #ifdef VTUNE_ANALYSIS
 #include <ittnotify.h>
 #endif
-#include"common.h"
+#include"lisa_util.h"
 class threadData {
 
 	public:
@@ -20,7 +20,6 @@ class threadData {
 		Info *tree_pool;
 		int tree_cnt;
 		index_t **s_siz;
-		//LISA_search<index_t>::LcpInfo **s_info;
 		LcpInfo **s_info;
 		uint8_t *s_msk;
 		threadData(int64_t pool_size);

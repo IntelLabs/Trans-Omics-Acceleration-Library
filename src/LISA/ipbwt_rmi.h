@@ -29,7 +29,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #ifdef VECTORIZE
 #include <immintrin.h>
 #endif 
-#include "common.h"
+#include "lisa_util.h"
 #include <omp.h>
 #include <unistd.h>
 #include <sys/mman.h>

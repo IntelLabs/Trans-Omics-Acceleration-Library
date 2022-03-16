@@ -25,11 +25,13 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 *****************************************************************************************/
 #ifndef QBWT_IPBWT_RMI_H
 #define QBWT_IPBWT_RMI_H
-#include "common.h"
-#include "fmi.h"
+#include "lisa_util.h"
 #include "thread_data.h"
-#include "chunkEncode.h"
+//#include "chunkEncode.h"
 #include "ipbwt_rmi.h"
+//#ifdef lisa_fmi
+#include "fmi.h"
+//#endif
 
 
 #define S_SWP_END do{\
@@ -110,18 +112,12 @@ class LISA_search : public FMI_search {
 #ifdef lisa_fmi
         FMI<index_t> *fmi;
 #else    
-	FMI_search *fmiSearch;// = new FMI_search(argv[1]);
+	FMI_search *fmiSearch;
 #endif
         typedef float linreg_t;
         typedef uint64_t kenc_t; 
         IPBWT_RMI<index_t, kenc_t> *rmi;
 
-#if 0
-        struct LcpInfo {
-            uint16_t s_width: 12;
-            uint8_t bw_ext_msk: 4;
-        };
-#endif
         static constexpr uint16_t WID_MAX = (1<<12)-1;
         LcpInfo *lcpi;
         vector<pair<index_t, index_t>> b_width;
@@ -133,8 +129,6 @@ class LISA_search : public FMI_search {
         pair<index_t, index_t> advance_chunk(kenc_t first, pair<index_t, index_t> intv) const;
         void load(string filename);
         void save(string filename) const;
-
-	void test();
 
 	// smem computation
 	void smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, threadData &td, Output* output, int min_seed_len, bool apply_lisa = true);
@@ -158,6 +152,11 @@ class LISA_search : public FMI_search {
 						   threadData & td, 
 						   int tid = 0);
 	SMEM get_info_to_smem(Info q, int64_t rmi_k, int K);
+	private:
+
+	void prepareChunkBatch(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K); 
+	void prepareChunkBatchForward(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K);
+	void prepareChunkBatchForwardComp(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K, int64_t qbwt_n); 
 
 };
 template<typename index_t>
@@ -306,13 +305,19 @@ template<typename index_t>
 inline void LISA_search<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r) const
 {
 
-/*
+
     for(int i=l-1; i>=0; i--) {
+#ifdef lisa_fmi
         auto next = fmi->backward_extend(intv, p[i]);
         if(next.low >= next.high) break;
         else l=i, intv=next;
+#else
+        auto next = backwardExt_light({intv.low, intv.high}, p[i]);
+        if(next.first >= next.second) break;
+        else l=i, intv={next.first, next.second};
+#endif
     }
-*/
+
 }
 
 template<typename index_t>
@@ -369,13 +374,11 @@ pair<int,int>* LISA_search<index_t>::print_all_SMEMs(const char* p, const int p_
 
 
 template<typename index_t>
-void LISA_search<index_t>::test(){
-	std::cout<<"Test called";
-}
-template<typename index_t>
 LISA_search<index_t>::~LISA_search(){
 	eprintln("qbwt rmi deallocated");
-	//delete fmi;
+#ifdef lisa_fmi
+	delete fmi;
+#endif
 	delete rmi;
 
 	delete lcpp1;
@@ -414,8 +417,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 #ifdef lisa_fmi
         fmi = new FMI<index_t>(t.c_str(), n, NULL, "@"+dna, bin_filename);
 #else
-    	fmiSearch = this;//new FMI_search(ref_seq_filename.c_str());
-    	//fmiSearch->load_index_with_rev_complement();
+    	fmiSearch = this;
     	load_index_with_rev_complement();
 #endif
         rmi = new IPBWT_RMI<index_t, uint64_t>(t, n, rmi_filename, K, num_rmi_leaf_nodes, NULL);
@@ -433,7 +435,6 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     assert(t.find('@') == string::npos && t.find('$') == string::npos);
     fprintf(stderr, "ref file name for fmi: %s \n", ref_seq_filename.c_str()); 
    
-    fprintf(stderr, "*********************** 1 ***************************\n"); 
 #ifdef REV_COMP
     // appending reverse complement
     for(int64_t i=(index_t)t.size()-1-(t.back()=='@');i>=0;i--) {
@@ -537,8 +538,8 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     fmi = new FMI<index_t>(t.c_str(), sa.data(), "@"+dna, bin_filename); // do not directly call load/save!
 #else
     //fmiSearch = new FMI_search(ref_seq_filename.c_str());
-    fmiSearch = this;//new FMI_search(ref_seq_filename.c_str());
     //fmiSearch->load_index_with_rev_complement();
+    fmiSearch = this;
     load_index_with_rev_complement();
 #endif
 
@@ -570,7 +571,6 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 			auto intv = fmi->backward_extend({l, r+1}, dna[j]);
 			if(intv.low < intv.high) my_mask |= 1<<j;
 #else
-                        //auto intv = fmiSearch->backwardExt_light({l, r+1}, j);
                         auto intv = backwardExt_light({l, r+1}, j);
                         if(intv.first < intv.second) my_mask |= 1<<j;
 #endif                   
@@ -619,7 +619,6 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 		
 		// process chunk batch
 		if(next_q >= qs_size || !(chunk_cnt < batch_size)){
-			// prepareChunkBatchVectorized_v1(chunk_pool, chunk_cnt, str_enc, intv_all);	
 			prepareChunkBatch(chunk_pool, chunk_cnt, str_enc, intv_all, K);
 
 			this->rmi->backward_extend_chunk_batched(&str_enc[0], chunk_cnt, intv_all);
@@ -630,7 +629,6 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 				auto next_intv = make_pair(intv_all[2*j],intv_all[2*j + 1]);
 
 				// next state: chunk batching
-				//if(next_intv.first < next_intv.second){//TODO: min_intv_size
 				if((next_intv.second - next_intv.first) > q.min_intv){//TODO: min_intv_size
 					q.intv = next_intv;
 					q.l -= K;
@@ -643,11 +641,6 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 					else if(q.r - q.l >= min_seed_len && q.l != q.prev_l){
 
 #ifdef OUTPUT
-						// output[q.id].qPos.push_back({q.l, q.r});
-						// output[q.id].refPos.push_back(q.intv);
-						// output[q.id].smem.push_back(SMEM_out(q.id, q.l, q.r, q.intv.first, q.intv.second));
-						//output->smem[td.numSMEMs++] = SMEM_out(q.id, q.l, q.r, q.intv.first, q.intv.second);                                                                                                            			
-//						output->smem[td.numSMEMs] = SMEM_out(q.id, q.l, q.r, q.intv.first, q.intv.second);             
 						
 						output->tal_smem[td.numSMEMs].rid = q.id;                                                                                               			
 						output->tal_smem[td.numSMEMs].m = q.l;                                                                                               			
@@ -700,7 +693,6 @@ void LISA_search<index_t>::s_pb(Info &_q, int cnt, threadData &td) {
 
     Info &q = td.tree_pool[cnt]; 
     index_t* siz = td.s_siz[cnt]; 
-    //LISA_search<index_t>::LcpInfo* info = td.s_info[cnt]; 
     LcpInfo* info = td.s_info[cnt]; 
     uint8_t &msk = td.s_msk[cnt]; 
     q = _q;
@@ -844,7 +836,6 @@ void LISA_search<index_t>::tree_shrink_batched(int cnt, threadData &td){
 	LISA_search<index_t> &qbwt = *(this);
 	Info* tree_pool = td.tree_pool;
 	index_t** s_siz = td.s_siz;
-	//LISA_search<index_t>::LcpInfo** s_info = td.s_info;
 	LcpInfo** s_info = td.s_info;
 	uint8_t* s_msk = td.s_msk;
 
@@ -1096,14 +1087,6 @@ int64_t LISA_search<index_t>::bwtSeedStrategyAllPosOneThread_with_info_prefetch(
 
 		// Forward search
 		SMEM smem = get_info_to_smem(qs[i], intv_all[2*i], K);
-#if 0
-		smem.rid = qs[i].id;
-		smem.m = qs[i].l;
-		smem.n = qs[i].l + K;
-		smem.l = qs[i].intv.first;
-		smem.k = intv_all[2*i];
-		smem.s = qs[i].intv.second -  qs[i].intv.first;
-#endif
 		smem_batch[next_read_idx] = smem;	
 		pf_batch[next_read_idx++] = qs[i];
 #ifdef ENABLE_PREFETCH
@@ -1123,13 +1106,10 @@ int64_t LISA_search<index_t>::bwtSeedStrategyAllPosOneThread_with_info_prefetch(
 			const char* p = q.p;
 			int j = smem.n;
 			int readlength = q.len;
-			//for(; j < readlength; j++)
-			
 			
 			if(j < readlength && p[j] < 4)
 			{
 				smem = tal_fmi->backwardExt(smem, 3 - p[j]);
-				//smem.n = j;
 				if((smem.s < max_intv) /*&& ((smem.n - smem.m + 1) >= minSeedLen)*/) 
 				{
 					if(smem.s > 0)
@@ -1138,7 +1118,7 @@ int64_t LISA_search<index_t>::bwtSeedStrategyAllPosOneThread_with_info_prefetch(
 						matchArray[numTotalSeed++] = smem;
 				    	//	print_smem_lisa(smem);
 					}
-					 // query finished - replace with new one.
+					// query finished - replace with new one.
 					j = smem.n + 1;
 					if(j < readlength && readlength - j >= minSeedLen){
 						q.l = q.r = j;
@@ -1184,7 +1164,6 @@ int64_t LISA_search<index_t>::bwtSeedStrategyAllPosOneThread_with_info_prefetch(
 		}
 
 	}
-	//tprof[K3_TIMER][tid] += __rdtsc() - tim; 
 	return numTotalSeed;
 }
 
@@ -1199,8 +1178,86 @@ SMEM LISA_search<index_t>::get_info_to_smem(Info q, int64_t rmi_k, int K){
 	smem.s = q.intv.second -  q.intv.first;
 
 	return smem;
-
 }
 
+template<typename index_t>
+void LISA_search<index_t>::prepareChunkBatch(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K){
+
+		    for(int64_t j = 0; j < qPoolSize; j++)
+		    {
+			Info &q = qPool[j];
+			uint64_t nxt_ext = 0;
+#ifndef NO_DNA_ORD
+			for(int i = q.l-K; i != q.l; i++) {
+			    nxt_ext = (nxt_ext<<2) | dna_ord(q.p[i]); 
+			}
+#else			
+			for(int i = q.l-K; i != q.l; i++) {
+			    nxt_ext = (nxt_ext<<2) | (q.p[i]); 
+			}
+#endif
+			str_enc[j] = nxt_ext;
+
+			intv_all[2 * j] = q.intv.first;
+			intv_all[2 * j + 1] = q.intv.second;
+			const char *p = qPool[j + 40].p; int offset = qPool[j + 40].l -  K;
+                        my_prefetch((const char*)(p + offset) , _MM_HINT_T0);
+		    }
+}
+
+
+template<typename index_t>
+void LISA_search<index_t>::prepareChunkBatchForwardComp(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K, int64_t qbwt_n){
+
+	for(int64_t j = 0; j < qPoolSize; j++)
+	{
+		Info &q = qPool[j];
+		uint64_t nxt_ext = 0;
+#ifndef NO_DNA_ORD
+		for(int i = q.l + K - 1; i >= q.l; i--) {
+			int base = 3 - dna_ord(q.p[i]);
+			nxt_ext = (nxt_ext<<2) | base; 
+		}
+#else			
+		for(int i = q.l + K - 1; i >= q.l; i--) {
+			int base = 3 - q.p[i];
+			nxt_ext = (nxt_ext<<2) | base; 
+		}
+#endif
+		str_enc[j] = nxt_ext;
+
+		intv_all[2 * j] = 0;
+		intv_all[2 * j + 1] = qbwt_n;
+		const char *p = qPool[j + 40].p; int offset = qPool[j + 40].l;
+		my_prefetch((const char*)(p + offset) , _MM_HINT_T0);
+	}
+}
+
+template<typename index_t>
+void LISA_search<index_t>::prepareChunkBatchForward(Info* qPool, int qPoolSize, uint64_t* str_enc, int64_t* intv_all, int K){
+
+	for(int64_t j = 0; j < qPoolSize; j++)
+	{
+		Info &q = qPool[j];
+		uint64_t nxt_ext = 0;
+#ifndef NO_DNA_ORD
+		for(int i = q.l; i < q.l + K; i++) {
+			int base = dna_ord(q.p[i]);
+			nxt_ext = (nxt_ext<<2) | base; 
+		}
+#else			
+		for(int i = q.l; i < q.l + K; i++) {
+			int base = q.p[i];
+			nxt_ext = (nxt_ext<<2) | base; 
+		}
+#endif
+		str_enc[j] = nxt_ext;
+
+		intv_all[2 * j] = q.intv.first;
+		intv_all[2 * j + 1] = q.intv.second;
+		const char *p = qPool[j + 40].p; int offset = qPool[j + 40].l;
+		my_prefetch((const char*)(p + offset) , _MM_HINT_T0);
+	}
+}
 
 #endif

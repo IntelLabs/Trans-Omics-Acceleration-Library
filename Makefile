@@ -82,7 +82,7 @@ CXXFLAGS=	-g -O3 -fopenmp $(ARCH_FLAGS)
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $< -o $@
 
-all:$(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+all:$(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E) lisa
 
 $(BUILD_INDEX_FOR_ONLY):$(TAL_LIB) $(SAFE_STR_LIB) benchmarks/build-index-forward-only.o
 	$(CXX) $(CXXFLAGS) benchmarks/build-index-forward-only.o $(LIBS) -o $@
