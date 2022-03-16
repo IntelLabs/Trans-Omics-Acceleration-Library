@@ -29,7 +29,8 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 
 #include<fstream>
 #include <cstring>
-#include "qbwt-rmi-batched.h"
+//#include "qbwt-rmi-batched.h"
+#include "qbwt-ipbwt-rmi.h"
 #include "read.h"
 #include <immintrin.h>
 #include "sais.h"
