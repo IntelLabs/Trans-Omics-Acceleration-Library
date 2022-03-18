@@ -235,6 +235,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
         int64_t startTick, endTick;
          
         startTick = __rdtsc();
+	bool is_sa_null = (__sa == NULL);
         if(__sa == NULL) {
             __sa = (int64_t *)malloc(n * sizeof(int64_t));
             assert(__sa != NULL);
@@ -263,7 +264,8 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
                 exit(0);
             }
         }
-        free(__sa);
+	if(is_sa_null == true) // alocation happened locally, do not free if __sa is passed externally
+        	free(__sa);
         endTick = __rdtsc();
         eprintln("SA done in %ld cycles.", endTick - startTick);
 
@@ -439,8 +441,12 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
 	
 	//eprintln("ERROR! execl failed with err %d, errno = %d: %s", status, errno, strerror( errno));
         //exit(0);
+        
+	fprintf(stderr, "Running  rmi-build script..\n");
         string shell_cmd = "./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes) + " " + "F64";
 	system(shell_cmd.c_str());
+	
+	fprintf(stderr, "rmi-build script done..\n");
  
     }
 
@@ -473,6 +479,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
     m_one_bits[8] = 0xff;
     bs_calls = vbs_calls = 0;
     bs_ticks = vbs_ticks = 0;
+	
 }
 
 

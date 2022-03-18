@@ -433,8 +433,8 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 
 
     assert(t.find('@') == string::npos && t.find('$') == string::npos);
-    fprintf(stderr, "ref file name for fmi: %s \n", ref_seq_filename.c_str()); 
-   
+    fprintf(stderr, "ref file name for fmi: %s size: %ld\n", ref_seq_filename.c_str(), t.size()); 
+    
 #ifdef REV_COMP
     // appending reverse complement
     for(int64_t i=(index_t)t.size()-1-(t.back()=='@');i>=0;i--) {
@@ -458,11 +458,12 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     }
     
 
-    fprintf(stderr, "ref file name for fmi: %s \n", ref_seq_filename.c_str()); 
+    fprintf(stderr, "ref file name for fmi: %s size = %ld\n", ref_seq_filename.c_str(), t.size()); 
 	// build rnk = sa^(-1)
     
     // TODO: remove this memory allocation as it is not required for interval tree building
-    //rmi = new IPBWT_RMI<index_t, uint64_t>(t, rmi_filename, K, num_rmi_leaf_nodes, sa.data());
+    rmi = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data());
+   
 
     // build lcp
     {

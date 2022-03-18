@@ -67,14 +67,13 @@ int main(int argc, char** argv) {
 
     string seq_forward_only = seq;
 #ifdef REV_COMP
-    eprintln("No char placed between ref seq and reverse complement, to replicate BWA-MEM bug.");
     // appending reverse complement
     for(int64_t i=(int64_t)seq.size()-1-(seq.back()=='@');i>=0;i--) {
-#ifndef NO_DNA_ORD 
-        seq.push_back(dna[3-dna_ord(seq[i])]);
-#else 
+//#ifndef NO_DNA_ORD 
+//        seq.push_back(dna[3-dna_ord(seq[i])]);
+//#else 
         seq.push_back(dna[3-(__lg(seq[i]-'A'+2)-1)]);
-#endif 
+//#endif 
     }
 #endif 
 
