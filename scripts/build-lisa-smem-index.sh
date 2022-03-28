@@ -3,6 +3,8 @@ make
 make lisa
 
 full_path=`readlink -f $1`
+full_path=$1
+
 K=$2
 num_leaf=$3
 

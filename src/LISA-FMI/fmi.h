@@ -36,7 +36,7 @@ class FMI {
         FMI(){}
         FMI(const string &t, index_t *sa, string _bases, string parent_filename); 
         FMI(const string &t, index_t t_size, index_t *sa, string _bases, string parent_filename); 
-        struct Interval{ index_t low, high; }; // left-inclusive
+        //struct Interval{ index_t low, high; }; // left-inclusive
         Interval backward_extend(Interval intv, char a) const;
 	~FMI();
     // private:

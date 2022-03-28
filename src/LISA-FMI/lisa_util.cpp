@@ -79,3 +79,53 @@ int64_t FCLAMP(double inp, double bound) {
   return (inp > bound ? bound : (int64_t)inp);
 }
 
+string get_abs_path(string path){
+    /* Get absolute path to the reference sequence file */
+/*   
+    srand(time(0));
+    int random_num = rand() % 10000;    
+    string temp_filename = path + "_ref_path" + to_string(random_num);
+
+    string cmd = "readlink -f "+ path + " > " + temp_filename;
+    system(cmd.c_str());
+    ifstream f_abs_path(temp_filename);
+    fprintf(stderr, "Relative ref path: %s\n", path.c_str());
+    string abs_path;
+    f_abs_path>>abs_path;
+    fprintf(stderr, "Absolute ref path: %s\n", abs_path.c_str());
+
+    f_abs_path.close();
+
+    cmd = "rm " + temp_filename;
+    system(cmd.c_str());
+*/
+ 
+    string abs_path;
+
+    if (path[0] == '/') return path;
+
+    abs_path = (string) get_current_dir_name();
+    abs_path = abs_path + "/" + path;
+    fprintf(stderr, "Absolute ref path with get_current_dir: %s\n", abs_path.c_str());
+
+    return abs_path;
+
+
+
+}
+string get_abs_location(string path) {
+
+    string abs_path = get_abs_path(path);	
+    string directory;
+    const size_t last_bslash_idx = abs_path.rfind('/');
+    if (std::string::npos != last_bslash_idx)
+    {
+       directory = abs_path.substr(0, last_bslash_idx);
+    }
+    fprintf(stderr, "Absolute directory path: %s\n", directory.c_str());
+
+    return directory;
+
+}
+
+

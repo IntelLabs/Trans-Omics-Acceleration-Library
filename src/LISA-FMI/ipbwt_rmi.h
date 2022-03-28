@@ -49,8 +49,8 @@ template<typename index_t, typename kenc_t>
 class IPBWT_RMI {
     public:
         IPBWT_RMI(){}
-        IPBWT_RMI(const string &t, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa = NULL);
-        IPBWT_RMI(const string &t, index_t t_size, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa = NULL);
+        IPBWT_RMI(const string &t, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa = NULL, string lisa_home = "./");
+        IPBWT_RMI(const string &t, index_t t_size, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa = NULL, string lisa_home = "./");
         ~IPBWT_RMI();
 
         struct ref_pos_t;
@@ -224,7 +224,7 @@ double IPBWT_RMI<index_t, kenc_t>::to_floating_point(pair<uint64_t, uint64_t> p)
 
 
 template<typename index_t, typename kenc_t>
-IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa):
+IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa, string lisa_home):
     n(t_size), K(K_), second_size(n+K_) {
 
     assert(K <= 21);
@@ -332,8 +332,9 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
             free(rnk.ls_word); free(rnk.ms_byte);
         }
     };
+    
 
-
+    ref_seq_filename = get_abs_path(ref_seq_filename);
     string ipbwt_filename = ref_seq_filename + ".ipbwt";
     for(const auto &s:{sizeof(index_t), sizeof(kenc_t), (size_t)K, (size_t)NUM_POS_BITS, (size_t)NUM_CHUNK_BITS}) {
         ipbwt_filename += string(".") + to_string(s);
@@ -443,7 +444,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
         //exit(0);
         
 	fprintf(stderr, "Running  rmi-build script..\n");
-        string shell_cmd = "./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes) + " " + "F64";
+        string shell_cmd = "cd " + lisa_home + "&& ./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes) + " " + "F64";
 	system(shell_cmd.c_str());
 	
 	fprintf(stderr, "rmi-build script done..\n");
@@ -486,7 +487,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
 
 
 template<typename index_t, typename kenc_t>
-IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa):
+IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, int K_, int64_t num_rmi_leaf_nodes, index_t *__sa, string lisa_home):
     n((index_t)t.size()), K(K_), second_size(n+K_) {
 
     assert(K <= 21);
@@ -595,6 +596,8 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
         }
     };
 
+    ref_seq_filename = get_abs_path(ref_seq_filename);
+	
 
     string ipbwt_filename = ref_seq_filename + ".ipbwt";
     for(const auto &s:{sizeof(index_t), sizeof(kenc_t), (size_t)K, (size_t)NUM_POS_BITS, (size_t)NUM_CHUNK_BITS}) {

@@ -25,11 +25,13 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 *****************************************************************************************/
 #include <cstdlib>
 #include <zlib.h>
+#include <string.h>
 #include "kseq.h"
 #include "utils.h"
+#include "lisa_util.h"
 //#include "bwa.h"
 KSEQ_INIT(gzFile, gzread)
-
+using namespace std;
 
 int64_t pac_seq_len(const char *fn_pac)
 {
@@ -99,7 +101,7 @@ string read_seq(string filename) {
         result += in;
     }
     static_assert(sizeof(result.size()) * __CHAR_BIT__ == 64, "you are not using 64-bit system?!");
-    eprintln("Read ref seq length = %lu", result.size());
+    fprintf(stderr, "Read ref seq length = %lu", result.size());
     
     for(char &c:result) if(!strchr(dna.c_str(),c)) {
         c = dna[rand()%4];
@@ -132,7 +134,7 @@ pair<string, int> read_query(string filename) {
         ret += cur;
     }
     gzclose(fp);
-    eprintln("Detected num of queries = %d, max_query_len = %d", num_queries, max_query_len);
+    fprintf(stderr,"Detected num of queries = %d, max_query_len = %d", num_queries, max_query_len);
 
     //Fix: Memory leak
     kseq_destroy(ks);
@@ -164,7 +166,7 @@ pair<string, int> read_query_separated_with_dot(string filename) {
         ret += cur + ";";
     }
     gzclose(fp);
-    eprintln("Detected num of queries = %d, max_query_len = %d", num_queries, max_query_len);
+    fprintf(stderr, "Detected num of queries = %d, max_query_len = %d", num_queries, max_query_len);
     //Fix: Memory leak
     kseq_destroy(ks);
     return {ret, max_query_len};

@@ -29,9 +29,10 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include "thread_data.h"
 //#include "chunkEncode.h"
 #include "ipbwt_rmi.h"
-//#ifdef lisa_fmi
+#include "sais.h"
+#ifdef lisa_fmi
 #include "fmi.h"
-//#endif
+#endif
 
 
 #define S_SWP_END do{\
@@ -98,12 +99,12 @@ template<typename index_t>
 class LISA_search : public FMI_search {
     public:
 	LISA_search(){};
-        LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes);
+        LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes, string lisa_home = "./");
         ~LISA_search();
         pair<int,int>* all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length) const;
         pair<int,int>* print_all_SMEMs(const char* p, const int p_len, pair<int,int>* ans_ptr, const int min_seed_length, const int &shift) const;
         index_t n;
-        typedef typename FMI<index_t>::Interval Interval;
+        //typedef typename FMI<index_t>::Interval Interval;
         Interval init_intv;
         void forward_step(const char* p, Interval &intv, int &l, int &r) const;
         void backward_step(const char* p, Interval &intv, int &l, int &r) const;
@@ -253,7 +254,7 @@ void LISA_search<index_t>::save(string filename) const {
 }
 
 template<typename index_t>
-pair<typename FMI<index_t>::Interval, index_t> LISA_search<index_t>::forward_shrink_phase(Interval intv, char a) const {
+pair<Interval, index_t> LISA_search<index_t>::forward_shrink_phase(Interval intv, char a) const {
 
     index_t e[2] = {intv.low, intv.high};
     LcpInfo info[2] = {lcpi[e[0]], lcpi[e[1]]};
@@ -393,7 +394,7 @@ LISA_search<index_t>::~LISA_search(){
 
 
 template<typename index_t>
-LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes):
+LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filename, int K, int64_t num_rmi_leaf_nodes, string lisa_home):
 #ifdef REV_COMP 
     n(2*(index_t)t_size+1),
 #else 
@@ -402,9 +403,11 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     init_intv({0, n}), FMI_search(ref_seq_filename.c_str()) {
 
 #ifdef REV_COMP
-    string bin_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    //string bin_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    string bin_filename = ref_seq_filename + ".rev_comp";
 #else
-    string bin_filename = ref_seq_filename + ".qbwt4.walg";
+    //string bin_filename = ref_seq_filename + ".qbwt4.walg";
+    string bin_filename = ref_seq_filename;
 #endif
     string rmi_filename = bin_filename;
     for(const auto &s:{sizeof(index_t)}) {
@@ -430,6 +433,13 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     } else {
         eprintln("No existing %s. Building...", (char*)bin_filename.c_str());
     }
+
+
+    // Store the size of reference sequence, so that there is no need to load reference seq once the index is created
+    string size_file_name = (string) ref_seq_filename + "_SIZE";
+    ofstream f_sz(size_file_name.c_str());
+    f_sz<<(t.size());
+    f_sz.close();
 
 
     assert(t.find('@') == string::npos && t.find('$') == string::npos);
@@ -462,7 +472,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 	// build rnk = sa^(-1)
     
     // TODO: remove this memory allocation as it is not required for interval tree building
-    rmi = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data());
+    rmi = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data(), lisa_home);
    
 
     // build lcp

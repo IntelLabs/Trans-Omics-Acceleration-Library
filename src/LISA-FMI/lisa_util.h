@@ -49,6 +49,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <array>
 #include <immintrin.h>
 #include <iostream>
+#include <unistd.h>
 #include "FMI_search.h"
 using namespace std;
 
@@ -142,8 +143,15 @@ struct LcpInfo {
 //ipbwt entry
 typedef pair<uint64_t, uint64_t> ipbwt_t;
 
+// SA interval type        
+struct Interval{ index_t low, high; }; // left-inclusive
+
 void load(string filename, vector<char*> ptrs, vector<size_t> sizes);
 
 void save(string filename, vector<char*> ptrs, vector<size_t> sizes);
 int64_t FCLAMP(double inp, double bound);
+
+string get_abs_path(string path);
+string get_abs_location(string path);
+
 #endif

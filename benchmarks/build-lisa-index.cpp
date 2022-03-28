@@ -80,9 +80,11 @@ int main(int argc, char** argv) {
     seq.push_back('$');
     string ref_seq_filename = argv[1];
 #ifdef REV_COMP
-    string rmi_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    //string rmi_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    string rmi_filename = ref_seq_filename + ".rev_comp";
 #else
-    string rmi_filename = ref_seq_filename + ".qbwt4.walg";
+    //string rmi_filename = ref_seq_filename + ".qbwt4.walg";
+    string rmi_filename = ref_seq_filename;
 #endif
 
 {
@@ -93,9 +95,9 @@ int main(int argc, char** argv) {
    LISA_search<int64_t> qbwt(seq_forward_only, seq_forward_only.size(), argv[1], K, num_rmi_leaf_nodes);
 }
 
-   string size_file_name = (string) argv[1] + "_SIZE";
-   ofstream f_sz(size_file_name.c_str());
-   f_sz<<(seq_forward_only.size());
+//   string size_file_name = (string) argv[1] + "_SIZE";
+//   ofstream f_sz(size_file_name.c_str());
+//   f_sz<<(seq_forward_only.size());
 #endif
    return 0;
 }
