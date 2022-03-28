@@ -107,7 +107,7 @@ class LISA_search : public FMI_search {
         //typedef typename FMI<index_t>::Interval Interval;
         Interval init_intv;
         void forward_step(const char* p, Interval &intv, int &l, int &r) const;
-        void backward_step(const char* p, Interval &intv, int &l, int &r) const;
+        void backward_step(const char* p, Interval &intv, int &l, int &r);
 
     // private:
 #ifdef lisa_fmi
@@ -303,7 +303,7 @@ inline void LISA_search<index_t>::forward_step(const char *p, Interval &intv, in
 }
 
 template<typename index_t>
-inline void LISA_search<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r) const
+void LISA_search<index_t>::backward_step(const char *p, Interval &intv, int &l, int &r)
 {
 
 
@@ -313,7 +313,7 @@ inline void LISA_search<index_t>::backward_step(const char *p, Interval &intv, i
         if(next.low >= next.high) break;
         else l=i, intv=next;
 #else
-        auto next = backwardExt_light({intv.low, intv.high}, p[i]);
+        std::pair<int64_t, int64_t> next = this->backwardExt_light({intv.low, intv.high}, p[i]);
         if(next.first >= next.second) break;
         else l=i, intv={next.first, next.second};
 #endif
