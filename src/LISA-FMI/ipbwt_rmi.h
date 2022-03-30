@@ -228,7 +228,12 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
     n(t_size), K(K_), second_size(n+K_) {
 
     assert(K <= 21);
-    eprintln("n = %ld, K = %d", (long)n, K);
+    assert(num_rmi_leaf_nodes >= 0);
+
+    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = (n/64 == 0)? 1: ceil(log2(n/64)); // default value
+
+
+    eprintln("ref seq size n = %ld, Chunk size K = %d, rmi leaf nodes = %ld", (long)n, K, num_rmi_leaf_nodes);
     eprintln("NUM_IPBWT_BYTES = %ld", NUM_IPBWT_BYTES);
     inv_second_size = ((double)1.0)/second_size;
     auto build_ipbwt = [&]() { 
@@ -264,7 +269,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
                 exit(0);
             }
         }
-	if(is_sa_null == true) // alocation happened locally, do not free if __sa is passed externally
+	if(is_sa_null == true) // allocation happened locally, do not free if __sa is passed externally
         	free(__sa);
         endTick = __rdtsc();
         eprintln("SA done in %ld cycles.", endTick - startTick);
@@ -374,7 +379,8 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
     }
     eprintln("ipbwt correctness ok.");
 
-    string rmi_filename = ipbwt_filename + "." + to_string(num_rmi_leaf_nodes) + ".rmi_PARAMETERS";
+    //string rmi_filename = ipbwt_filename + "." + to_string(num_rmi_leaf_nodes) + ".rmi_PARAMETERS";
+    string rmi_filename = ipbwt_filename + ".rmi_PARAMETERS";
     if(ifstream(rmi_filename.c_str()).good()) {
         eprintln("Found existing %s!!", (char*)rmi_filename.c_str());
         vector<char*> ptrs;vector<size_t> sizes;
@@ -491,9 +497,16 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
     n((index_t)t.size()), K(K_), second_size(n+K_) {
 
     assert(K <= 21);
-    eprintln("n = %ld, K = %d", (long)n, K);
+    assert(num_rmi_leaf_nodes >= 0);
+
+    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = (n/64 == 0)? 1: ceil(log2(n/64)); // default value
+
+
+    eprintln("ref seq size n = %ld, Chunk size K = %d, rmi leaf nodes = %ld", (long)n, K, num_rmi_leaf_nodes);
     eprintln("NUM_IPBWT_BYTES = %ld", NUM_IPBWT_BYTES);
     inv_second_size = ((double)1.0)/second_size;
+   
+
     auto build_ipbwt = [&]() { 
         int64_t startTick, endTick;
          
@@ -630,7 +643,8 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
     }
     eprintln("ipbwt correctness ok.");
 
-    string rmi_filename = ipbwt_filename + "." + to_string(num_rmi_leaf_nodes) + ".rmi_PARAMETERS";
+    //string rmi_filename = ipbwt_filename + "." + to_string(num_rmi_leaf_nodes) + ".rmi_PARAMETERS";
+    string rmi_filename = ipbwt_filename + ".rmi_PARAMETERS";
     if(ifstream(rmi_filename.c_str()).good()) {
         eprintln("Found existing %s!!", (char*)rmi_filename.c_str());
         vector<char*> ptrs;vector<size_t> sizes;

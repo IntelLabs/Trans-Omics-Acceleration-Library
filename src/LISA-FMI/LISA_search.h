@@ -376,7 +376,7 @@ pair<int,int>* LISA_search<index_t>::print_all_SMEMs(const char* p, const int p_
 
 template<typename index_t>
 LISA_search<index_t>::~LISA_search(){
-	eprintln("qbwt rmi deallocated");
+	eprintln("rmi deallocated");
 #ifdef lisa_fmi
 	delete fmi;
 #endif
