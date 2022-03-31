@@ -29,22 +29,15 @@ threadData::threadData(int64_t pool_size){
 }
 
 void threadData::dealloc_td(){
-
 	free(chunk_pool);
 	free(str_enc);
 	free(intv_all);
 	free(fmi_pool);
-
 	free(tree_pool);
 	free(s_siz[0]);
-
 	free(s_siz);
-
 	free(s_info[0]);
-
 	free(s_info);
-
 	free(s_msk);
-
 }
 

@@ -1,11 +1,7 @@
 #ifndef THREAD_DATA_H
 #define THREAD_DATA_H
-#ifdef VTUNE_ANALYSIS
-#include <ittnotify.h>
-#endif
 #include"lisa_util.h"
 class threadData {
-
 	public:
 
 		Info *chunk_pool;
@@ -13,7 +9,7 @@ class threadData {
 		uint64_t *str_enc;
 		int64_t *intv_all;
 		
-    		int64_t numSMEMs;
+		int64_t numSMEMs;
 		Info *fmi_pool;
 		int fmi_cnt;
 
