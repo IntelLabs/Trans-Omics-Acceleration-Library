@@ -376,11 +376,13 @@ pair<int,int>* LISA_search<index_t>::print_all_SMEMs(const char* p, const int p_
 
 template<typename index_t>
 LISA_search<index_t>::~LISA_search(){
-	eprintln("rmi deallocated");
 #ifdef lisa_fmi
 	delete fmi;
 #endif
-	delete rmi;
+	if(rmi != NULL){
+		delete rmi;
+		eprintln("rmi deallocated!!");
+	}
 
 	delete lcpp1;
 
@@ -431,6 +433,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
         eprintln("large width space usage = %.6fN", (double)(b_width.size()*sizeof(b_width[0])*1.0/n));
         return;
     } else {
+	rmi = NULL;
         eprintln("No existing %s. Building...", (char*)bin_filename.c_str());
     }
 
@@ -470,10 +473,13 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 
     fprintf(stderr, "ref file name for fmi: %s size = %ld\n", ref_seq_filename.c_str(), t.size()); 
 	// build rnk = sa^(-1)
-    
+    {
     // TODO: remove this memory allocation as it is not required for interval tree building
-    rmi = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data(), lisa_home);
-   
+    	IPBWT_RMI<index_t, uint64_t> *rmi_index = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data(), lisa_home);
+
+	delete rmi_index;
+    }
+    
 
     // build lcp
     {
@@ -518,7 +524,8 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     // build tree-structure of uni-lcps
     {
         // build order for traversing
-        vector<index_t> dec_lcp_order(n-1); {
+        vector<index_t> dec_lcp_order(n-1); 
+	{
             int64_t max_lcp = LCPP1_MAX;
             for(auto p: large_lcpp1) max_lcp = max(max_lcp, (int64_t)p.second);
             vector<index_t> cnt(max_lcp+1, 0);
@@ -652,16 +659,15 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 					else if(q.r - q.l >= min_seed_len && q.l != q.prev_l){
 
 #ifdef OUTPUT
-						
-						output->tal_smem[td.numSMEMs].rid = q.id;                                                                                               			
-						output->tal_smem[td.numSMEMs].m = q.l;                                                                                               			
-						output->tal_smem[td.numSMEMs].n = q.r - 1;                                                                                               			
-						output->tal_smem[td.numSMEMs].k = q.intv.first;                                                                                               			
-						output->tal_smem[td.numSMEMs].l = 0;                                                                                               			
+						output->tal_smem[td.numSMEMs].rid = q.id;
+						output->tal_smem[td.numSMEMs].m = q.l;
+						output->tal_smem[td.numSMEMs].n = q.r - 1;
+						output->tal_smem[td.numSMEMs].k = q.intv.first;
+						output->tal_smem[td.numSMEMs].l = 0;
 						output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
-						//output->tal_smem[td.numSMEMs].smem_id = q.smem_id;                                                                                               			
-						td.numSMEMs++;                                                                                               			
-						q.prev_l = q.l;                                                                        			
+						//output->tal_smem[td.numSMEMs].smem_id = q.smem_id;
+						td.numSMEMs++;
+						q.prev_l = q.l;
 #endif
 					}
 				}
@@ -669,11 +675,8 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 					//Next state: fmi procssing
 					fmi_pool[fmi_cnt++] = q;
 				}
-
 			}
 		}
-	
-	
 		// fmi processing
 		if(next_q >= qs_size || !(fmi_cnt < batch_size)){
 			auto cnt = fmi_cnt;
@@ -761,31 +764,26 @@ void LISA_search<index_t>::fmi_extend_batched(int cnt, Info* q_batch, threadData
 			if(it >=0 && (int)q.p[it] < 4){ // considering encoding acgt -> 0123			
 #ifdef lisa_fmi
 				auto next = qbwt.fmi->backward_extend({q.intv.first, q.intv.second}, q.p[it]);
-#else
-				std::pair<int64_t, int64_t> next_tal = tal_fmi->backwardExt_light( {q.intv.first, q.intv.second}, q.p[it]);
-#endif
-				
-#ifdef lisa_fmi
 				if(!((next.high - next.low) > q.min_intv)) { 
 #else
+				std::pair<int64_t, int64_t> next_tal = tal_fmi->backwardExt_light( {q.intv.first, q.intv.second}, q.p[it]);
 				if(!((next_tal.second - next_tal.first) > q.min_intv)) { 
-#endif				
+#endif
+				
 
 					if(q.r - q.l >= min_seed_len && q.l != q.prev_l){
 #ifdef OUTPUT
 					
 						if(q.mid == 0 || q.mid > 0 && q.l <= q.mid)
 						{
-	
-							output->tal_smem[td.numSMEMs].rid = q.id;                                                                                               			
-							output->tal_smem[td.numSMEMs].m = q.l;                                                                                               			
-							output->tal_smem[td.numSMEMs].n = q.r - 1;                                                                                               			
-							output->tal_smem[td.numSMEMs].k = q.intv.first;                                                                                               			
-							output->tal_smem[td.numSMEMs].l = 0;                                                                                               			
+							output->tal_smem[td.numSMEMs].rid = q.id;
+							output->tal_smem[td.numSMEMs].m = q.l;
+							output->tal_smem[td.numSMEMs].n = q.r - 1;	
+							output->tal_smem[td.numSMEMs].k = q.intv.first;
+							output->tal_smem[td.numSMEMs].l = 0;
 							output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
-							td.numSMEMs++;                       
-							q.prev_l = q.l;                             
-
+							td.numSMEMs++; 
+							q.prev_l = q.l;
 						}                                           			
 #endif
 					}
@@ -809,15 +807,14 @@ void LISA_search<index_t>::fmi_extend_batched(int cnt, Info* q_batch, threadData
 					//query finished
 					if(q.r - q.l >= min_seed_len && q.l != q.prev_l){
 #ifdef OUTPUT
-						
-						output->tal_smem[td.numSMEMs].rid = q.id;                                                                                               			
-						output->tal_smem[td.numSMEMs].m = q.l;                                                                                               			
-						output->tal_smem[td.numSMEMs].n = q.r - 1;                                                                                               			
-						output->tal_smem[td.numSMEMs].k = q.intv.first;                                                                                               			
-						output->tal_smem[td.numSMEMs].l = 0;                                                                                               			
+						output->tal_smem[td.numSMEMs].rid = q.id;
+						output->tal_smem[td.numSMEMs].m = q.l;
+						output->tal_smem[td.numSMEMs].n = q.r - 1;
+						output->tal_smem[td.numSMEMs].k = q.intv.first;
+						output->tal_smem[td.numSMEMs].l = 0;
 						output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
-						td.numSMEMs++;                                                                                               			
-						q.prev_l = q.l;                                                                        			
+						td.numSMEMs++;
+						q.prev_l = q.l;
 #endif
 					}
 					if(cnt1 < cnt) //More queries to be processed?
@@ -912,16 +909,11 @@ void LISA_search<index_t>::fmi_shrink_batched(int cnt, Info* q_batch, threadData
 			if(it < q.r){			
 #ifdef lisa_fmi
 				auto next = qbwt.fmi->backward_extend({q.intv.first, q.intv.second}, 3 - q.p[it]);
-				
-#else
-				std::pair<int64_t, int64_t> next_tal = tal_fmi->backwardExt_light( {q.intv.first, q.intv.second}, 3 - q.p[it]);
-				
-#endif
-#ifdef lisa_fmi
 				if((next.high - next.low) < q.min_intv) { 
 #else
+				std::pair<int64_t, int64_t> next_tal = tal_fmi->backwardExt_light( {q.intv.first, q.intv.second}, 3 - q.p[it]);
 				if((next_tal.second - next_tal.first) < q.min_intv) { 
-#endif					
+#endif
 					q.r = q.l;	
 					output[output_cnt++] = q;  //State change
 
@@ -1037,10 +1029,8 @@ void LISA_search<index_t>::exact_search_rmi_batched_k3(Info *qs, int64_t qs_size
 				}
 				else {
 					//Next state: fmi procssing
-					
 					fmi_pool[fmi_cnt++] = q;
 				}
-
 			}
 		}
 		if((next_q >= qs_size && fmi_cnt > 0) || !(fmi_cnt < batch_size)){

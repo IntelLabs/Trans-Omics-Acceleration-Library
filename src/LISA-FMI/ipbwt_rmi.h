@@ -33,7 +33,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <omp.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
+#include "sais.h"
 #ifdef ENABLE_PREFETCH
 enum query_state
 {
@@ -97,7 +97,9 @@ class IPBWT_RMI {
         inline int64_t get_guess_root_step(double key);
         inline int64_t get_guess_leaf_step(double key, int64_t modelIndex, int64_t *err);
         inline void last_mile_binary_search_one_step(ipbwt_t ipb_x, int64_t &first, int64_t &m);
+#if defined (VECTORIZE) && defined(__AVX512BW__)
         inline void last_mile_vectorized_search_final_step(ipbwt_t ipb_x, int64_t &first, int64_t &m);
+#endif
         inline bool process_query_one_step(BatchMetadata &meta, index_t &p_low, index_t &p_high);
         void backward_extend_chunk_batched (kenc_t* str_enc_list, int64_t qs_size, index_t *intv_all);
         void backward_extend_multi_chunk_batched (Info* str_enc_list, int64_t qs_size, index_t *intv_all);
@@ -230,7 +232,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
     assert(K <= 21);
     assert(num_rmi_leaf_nodes >= 0);
 
-    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = (n/64 == 0)? 1: ceil(log2(n/64)); // default value
+    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = pow(2, (n/64 == 0)? 1: ceil(log2(n/64))); // default value
 
 
     eprintln("ref seq size n = %ld, Chunk size K = %d, rmi leaf nodes = %ld", (long)n, K, num_rmi_leaf_nodes);
@@ -429,6 +431,9 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
         string ipbwt_f64_filename = ipbwt_filename + ".f64";
         save(ipbwt_f64_filename, ptrs, sizes);
         eprintln("Training data saved at %s. Building RMI using Ryan's code. Run this code again after the RMI is built.", (char*)ipbwt_f64_filename.c_str());
+	
+	/* Free memory for training data */
+	free(train_data);
         eprintln("executing ./build-rmi.linear_spline.linear.sh");
         //const char *execv_argv[] = {"./build-rmi.linear_spline.linear.sh",
         //                            ipbwt_f64_filename.c_str(),
@@ -499,7 +504,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
     assert(K <= 21);
     assert(num_rmi_leaf_nodes >= 0);
 
-    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = (n/64 == 0)? 1: ceil(log2(n/64)); // default value
+    if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = pow(2, (n/64 == 0)? 1: ceil(log2(n/64))); // default value
 
 
     eprintln("ref seq size n = %ld, Chunk size K = %d, rmi leaf nodes = %ld", (long)n, K, num_rmi_leaf_nodes);
@@ -684,6 +689,10 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
         string ipbwt_f64_filename = ipbwt_filename + ".f64";
         save(ipbwt_f64_filename, ptrs, sizes);
         eprintln("Training data saved at %s. Building RMI using Ryan's code. Run this code again after the RMI is built.", (char*)ipbwt_f64_filename.c_str());
+	
+	/* Free memory for training data */
+	free(train_data);
+
         eprintln("executing ./build-rmi.linear_spline.linear.sh");
         //const char *execv_argv[] = {"./build-rmi.linear_spline.linear.sh",
         //                            ipbwt_f64_filename.c_str(),
@@ -739,6 +748,9 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
 template<typename index_t, typename kenc_t>
 IPBWT_RMI<index_t, kenc_t>::~IPBWT_RMI()
 {
+
+    fprintf(stderr, "IPBWT_RMI deallocated\n");
+
 #ifndef HUGE_PAGE
     free(ipbwt_array);
     _mm_free(L1_PARAMETERS);
@@ -778,13 +790,21 @@ inline index_t IPBWT_RMI<index_t, kenc_t>::last_mile_from_guess
 
     index_t m = high - low;
     index_t first = low;
+/* // Linear walk logic: Lower bound 
+
+    index_t first_lin = first;
+
+    while(first_lin < first+m && ipbwt(first_lin) < ipb_x){
+	first_lin++;
+    }
+*/
 
     while(m > 0)
     {
         index_t half = m / 2;
         index_t middle = first + half;
 
-        if(ipb_x >= ipbwt(middle))
+        if(ipb_x > ipbwt(middle))
         {
             first = middle + 1;
             m -= half + 1;
@@ -794,12 +814,13 @@ inline index_t IPBWT_RMI<index_t, kenc_t>::last_mile_from_guess
             m = half;
         }
     }
-    first--;
+    //first--;
     return first;
 
     // TODO: if the final pos is not in the err range, look for it
 }
 
+#if 0
 template<typename index_t, typename kenc_t>
 inline pair<index_t, index_t> IPBWT_RMI<index_t, kenc_t>::backward_extend_chunk
 (kenc_t str_enc, pair<index_t, index_t> intv) const {
@@ -811,6 +832,27 @@ inline pair<index_t, index_t> IPBWT_RMI<index_t, kenc_t>::backward_extend_chunk
     auto low_guess = get_guess_from_rmi(ipb_x_low, &err_low);
 
     auto high_guess = get_guess_from_rmi(ipb_x_high, &err_high);
+
+    low = last_mile_from_guess(ipb_x_low, low_guess, err_low);
+    high = last_mile_from_guess(ipb_x_high, high_guess, err_high);
+
+    return {low, high};
+}
+#endif
+template<typename index_t, typename kenc_t>
+inline pair<index_t, index_t> IPBWT_RMI<index_t, kenc_t>::backward_extend_chunk
+(kenc_t str_enc, pair<index_t, index_t> intv) const {
+    index_t low = intv.first, high = intv.second;
+    ipbwt_t ipb_x_key_low = {str_enc, low+K};
+    ipbwt_t ipb_x_key_high = {str_enc, high+K};
+    ipbwt_t ipb_x_low = ipbwt(str_enc, low+K);
+    ipbwt_t ipb_x_high = ipbwt(str_enc, high+K);
+
+    int64_t err_low = 0, err_high = 0;
+    auto low_guess = get_guess_from_rmi(ipb_x_key_low, &err_low);
+
+    auto high_guess = get_guess_from_rmi(ipb_x_key_high, &err_high);
+
 
     low = last_mile_from_guess(ipb_x_low, low_guess, err_low);
     high = last_mile_from_guess(ipb_x_high, high_guess, err_high);
@@ -855,6 +897,7 @@ inline void IPBWT_RMI<index_t, kenc_t>::last_mile_binary_search_one_step(ipbwt_t
     //bs_ticks += (endTick - startTick);
 }
 
+#if defined (VECTORIZE) && defined(__AVX512BW__)
 template<typename index_t, typename kenc_t>
 inline void IPBWT_RMI<index_t, kenc_t>::last_mile_vectorized_search_final_step(ipbwt_t ipb_x, int64_t &first, int64_t &m)
 {
@@ -882,7 +925,9 @@ inline void IPBWT_RMI<index_t, kenc_t>::last_mile_vectorized_search_final_step(i
     first = first + numgt;
     m = 0;
 }
+#endif
 
+#if 0
 template<typename index_t, typename kenc_t>
 inline bool IPBWT_RMI<index_t, kenc_t>::process_query_one_step(BatchMetadata &meta, index_t &p_low, index_t &p_high)
 {
@@ -978,6 +1023,126 @@ inline bool IPBWT_RMI<index_t, kenc_t>::process_query_one_step(BatchMetadata &me
         {
             last_mile_vectorized_search_final_step(meta.ipb_x[1], meta.first[1], meta.m[1]);
         }
+        if(meta.m[0] == 0 && meta.m[1] == 0)
+        {
+            p_low = meta.first[0];
+            p_high = meta.first[1];
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif
+
+template<typename index_t, typename kenc_t>
+inline bool IPBWT_RMI<index_t, kenc_t>::process_query_one_step(BatchMetadata &meta, index_t &p_low, index_t &p_high)
+{
+    if(meta.state == GUESS_RMI_ROOT)
+    {
+        meta.modelIndex[0] = get_guess_root_step(meta.key[0]);
+        meta.modelIndex[1] = get_guess_root_step(meta.key[1]);
+        meta.state = GUESS_RMI_LEAF;
+        _mm_prefetch((const char *)(&L1_PARAMETERS[meta.modelIndex[0] * 3]), _MM_HINT_T0);
+        _mm_prefetch((const char *)(&L1_PARAMETERS[meta.modelIndex[0] * 3 + 2]), _MM_HINT_T0);
+        _mm_prefetch((const char *)(&L1_PARAMETERS[meta.modelIndex[1] * 3]), _MM_HINT_T0);
+        _mm_prefetch((const char *)(&L1_PARAMETERS[meta.modelIndex[1] * 3 + 2]), _MM_HINT_T0);
+    }
+    else if(meta.state == GUESS_RMI_LEAF)
+    {
+        int64_t err[2];
+        int64_t guess[2];
+        int64_t last[2];
+        err[0] = err[1] = 0;
+        guess[0] = get_guess_leaf_step(meta.key[0], meta.modelIndex[0], &err[0]);
+        guess[1] = get_guess_leaf_step(meta.key[1], meta.modelIndex[1], &err[1]);
+        meta.first[0] = guess[0] - err[0];
+        if(meta.first[0] < 0) meta.first[0] = 0;
+        last[0] = guess[0] + err[0] + 1;
+        if(last[0] > n) last[0] = n;
+        meta.m[0] = last[0] - meta.first[0];
+        meta.first[1] = guess[1] - err[1];
+        if(meta.first[1] < 0) meta.first[1] = 0;
+        last[1] = guess[1] + err[1] + 1;
+        if(last[1] > n) last[1] = n;
+        meta.m[1] = last[1] - meta.first[1];
+        meta.state = LAST_MILE;
+        if(meta.m[0] > 8)
+        {
+            _mm_prefetch((const char *)(&ipbwt_array[(meta.first[0] + (meta.m[0] >> 1)) * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[(meta.first[0] + (meta.m[0] >> 1)) * NUM_IPBWT_BYTES]) + 8, _MM_HINT_T0);
+        }
+        else
+        {
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]) + 40, _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]) + 79, _MM_HINT_T0);
+        }
+        if(meta.m[1] > 8)
+        {
+            _mm_prefetch((const char *)(&ipbwt_array[(meta.first[1] + (meta.m[1] >> 1)) * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[(meta.first[1] + (meta.m[1] >> 1)) * NUM_IPBWT_BYTES]) + 8, _MM_HINT_T0);
+        }
+        else
+        {
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]) + 40, _MM_HINT_T0);
+            _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]) + 79, _MM_HINT_T0);
+        }
+    }
+    else
+    {
+//#ifdef VECTORIZE 
+#if defined (VECTORIZE) && defined(__AVX512BW__)
+        if(meta.m[0] > 8)
+#else
+        if(meta.m[0] > 0)
+
+#endif
+        {
+            last_mile_binary_search_one_step(meta.ipb_x[0], meta.first[0], meta.m[0]);
+            if(meta.m[0] > 8)
+            {
+                _mm_prefetch((const char *)(&ipbwt_array[(meta.first[0] + (meta.m[0] >> 1)) * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[(meta.first[0] + (meta.m[0] >> 1)) * NUM_IPBWT_BYTES]) + 8, _MM_HINT_T0);
+            }
+            else
+            {
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]) + 40, _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[0] * NUM_IPBWT_BYTES]) + 79, _MM_HINT_T0);
+            }
+        }
+//#ifdef VECTORIZE 
+#if defined (VECTORIZE) && defined(__AVX512BW__)
+        else
+        {
+            last_mile_vectorized_search_final_step(meta.ipb_x[0], meta.first[0], meta.m[0]);
+        }
+        if(meta.m[1] > 8)
+#else
+        if(meta.m[1] > 0)
+#endif
+        {
+            last_mile_binary_search_one_step(meta.ipb_x[1], meta.first[1], meta.m[1]);
+            if(meta.m[1] > 8)
+            {
+                _mm_prefetch((const char *)(&ipbwt_array[(meta.first[1] + (meta.m[1] >> 1)) * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[(meta.first[1] + (meta.m[1] >> 1)) * NUM_IPBWT_BYTES]) + 8, _MM_HINT_T0);
+            }
+            else
+            {
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]), _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]) + 40, _MM_HINT_T0);
+                _mm_prefetch((const char *)(&ipbwt_array[meta.first[1] * NUM_IPBWT_BYTES]) + 79, _MM_HINT_T0);
+            }
+        }
+//#ifdef VECTORIZE 
+#if defined (VECTORIZE) && defined(__AVX512BW__)
+        else
+        {
+            last_mile_vectorized_search_final_step(meta.ipb_x[1], meta.first[1], meta.m[1]);
+        }
+#endif
         if(meta.m[0] == 0 && meta.m[1] == 0)
         {
             p_low = meta.first[0];

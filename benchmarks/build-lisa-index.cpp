@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 #endif
 
 {
-   IPBWT_RMI<int64_t, uint64_t> rmi(seq, seq.size(), rmi_filename, K, num_rmi_leaf_nodes, NULL);
+   //IPBWT_RMI<int64_t, uint64_t> rmi(seq, seq.size(), rmi_filename, K, num_rmi_leaf_nodes, NULL);
 }
 #ifdef REV_COMP
 { 
