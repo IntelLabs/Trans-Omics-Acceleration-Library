@@ -60,17 +60,13 @@ int main(int argc, char** argv) {
 
 	int64_t num_rmi_leaf_nodes = atol(argv[4]);
 	eprintln("using num_rmi_leaf_nodes = %ld", num_rmi_leaf_nodes);
-
-
-
-    	string seq;
-//  	read_seq_lisa(argv[1], seq);
+    string seq;
+//  read_seq_lisa(argv[1], seq);
 	eprintln("Read ref file done.");
 	eprintln("seq.size() = %lu", seq.size());
 	string queries; int max_query_len = 0;
 	tie(queries, max_query_len) = read_query_separated_with_dot(argv[2]);
 	eprintln("Read query file done.");
-
 
 	int numThreads = atoi(argv[5]);
 	int min_seed_len = atoi(argv[6]);
@@ -91,12 +87,8 @@ int main(int argc, char** argv) {
 	int64_t size_file;
 	fi>>size_file;
 	eprintln("Read ref file done. %lld",  size_file);
-	 
-//    FMI_search *fmiSearch = new FMI_search(argv[1]);
-//    fmiSearch->load_index_with_rev_complement();
 
 	LISA_search<index_t> qbwt(seq, size_file, argv[1], K, num_rmi_leaf_nodes);
-//	qbwt.fmiSearch = fmiSearch;
 
 	int64_t qs_size ;
 	vector<Info> qs;
@@ -126,7 +118,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-
 	qs_size = qs.size();
 
 #pragma omp parallel num_threads(numThreads)
@@ -149,7 +140,6 @@ int main(int argc, char** argv) {
 	//SMEM_out** batch_start = (SMEM_out**)malloc(num_batches * sizeof(SMEM_out*));
 	SMEM** batch_start = (SMEM**)malloc(num_batches * sizeof(SMEM*));
 	int64_t* num_smem_per_batch = (int64_t*)malloc(num_batches * sizeof(int64_t)); 
-	
 	
 #pragma omp parallel num_threads(numThreads)
 	{
@@ -175,20 +165,15 @@ int main(int argc, char** argv) {
 			if((vAnsAllocation -  v_td[tid].numSMEMs < max_query_len * qs_sz)){
 				eprintln("Insufficient memory!! Allocating more memory for stroing SMEMs");
 				vAnsAllocation *= 2;
-                
-				//output[tid].smem = (SMEM_out *)realloc(output[tid].smem, vAnsAllocation * sizeof(SMEM_out)); 
 				output[tid].tal_smem = (SMEM *)realloc(output[tid].tal_smem, vAnsAllocation * sizeof(SMEM)); 
 			}
 			// SMEM search
 	#ifdef lisa_fmi
-			smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, NULL);
-	#else 
-			//smem_rmi_batched(&qs[i], qs_sz, batch_size, qbwt, v_td[tid], &output[tid], min_seed_len, true, &qbwt);
 			qbwt.smem_rmi_batched(&qs[i], qs_sz, batch_size, v_td[tid], &output[tid], min_seed_len, true);
-
+	#else 
+			qbwt.smem_rmi_batched(&qs[i], qs_sz, batch_size, v_td[tid], &output[tid], min_seed_len, true);
 	#endif	
 			num_smem_per_batch[batch_id] = v_td[tid].numSMEMs - prev_smem_count;
-			
 			//Sort SMEM to rearrange the SMEMs within a batch			
 			sort(batch_start[batch_id], batch_start[batch_id] + num_smem_per_batch[batch_id], tal_smem_sort);
 			//sort(batch_start[batch_id], batch_start[batch_id] + num_smem_per_batch[batch_id], smem_sort);
@@ -201,7 +186,6 @@ int main(int argc, char** argv) {
 	__itt_pause();
 #endif
 
-
 	for(int i = 0; i < numThreads; i++)
 		TotalSMEM += v_td[i].numSMEMs;
 
@@ -212,14 +196,9 @@ int main(int argc, char** argv) {
 	eprintln("SMEMs per query = %.3f",  TotalSMEM * 1.0 / num_queries);
 	eprintln("totalTicks = %lld", (long long)totalTicks);
 
-
-
 #ifdef PRINT_OUTPUT	
-
-
 	int64_t prev_qid = 0;
-	for(int i = 0; i< num_batches; i++)
-	{
+	for(int i = 0; i< num_batches; i++) {
 		int64_t num_smem =  num_smem_per_batch[i];
 
 		for(int j = 0; j < num_smem; j++){
@@ -231,9 +210,7 @@ int main(int argc, char** argv) {
 			printf("[%d,%d][%lld, %lld]\n", batch_start[i][j].m, batch_start[i][j].n + 1, batch_start[i][j].k, batch_start[i][j].s);// - batch_start[i][j].ref_l);		
 		}
 	}
-
 #endif
-
 
 #if 0
 	for (int i = 0; i < output.size(); i++){
@@ -241,10 +218,7 @@ int main(int argc, char** argv) {
 		for(int j = output[i].qPos.size() - 1; j >= 0; j--)
 			eprintln("[%d,%d][%lld, %lld]", output[i].qPos[j].first, output[i].qPos[j].second, (long long)output[i].refPos[j].first, (long long)(output[i].refPos[j].second - output[i].refPos[j].first));
 	}
-
 #endif
 	free(v_td);
 	return 0;
 }
-#undef flip
-#undef rev_comp

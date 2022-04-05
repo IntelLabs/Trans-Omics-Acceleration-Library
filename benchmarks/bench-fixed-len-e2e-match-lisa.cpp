@@ -27,7 +27,6 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include <ittnotify.h>
 #endif
 
-
 #include<fstream>
 #include "lisa_util.h"
 #include "read.h"
@@ -36,45 +35,20 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #include "ipbwt_rmi.h"
 #include <omp.h>
 
-/*
-#ifdef _64BIT 
-    typedef int64_t index_t;
-#else 
-    typedef uint32_t index_t;
-#endif 
-*/
-/*
-struct Info {
-    const char* p;
-    int q_len;
-    int l, r; //[l, r)
-    pair<index_t, index_t> intv, next_intv;
-    uint64_t nxt_ext;
-};
-*/
+// Globals for collecting profiling data
 int64_t one_calls = 0;
-
 int64_t bin_search_walk = 0;
-
-
-
-
-
-// TODO try only do chunk-based on the first SMEM?
 
 int main(int argc, char** argv) {
 #ifdef VTUNE_ANALYSIS
     __itt_pause();
 #endif
-    
-
     if(!(argc == 5 || argc == 6)) {
         error_quit("Need 5 args: ref_file query_set K num_rmi_leaf_nodes num_threads");
     }
 
     int K = atoi(argv[3]);
     eprintln("using K = %d", K);
-	
     if(K < 0 || K > 30) return 0;
 
     int64_t num_rmi_leaf_nodes = atol(argv[4]);
@@ -86,11 +60,7 @@ int main(int argc, char** argv) {
     eprintln("seq.size() = %lu", seq.size());
     string queries; int max_query_len = 0;
     tie(queries, max_query_len) = read_query_separated_with_dot(argv[2]);
-
-
     eprintln("Read query file done.");
-
-
 
 #ifdef REV_COMP
     eprintln("No char placed between ref seq and reverse complement, to replicate BWA-MEM bug.");
@@ -109,9 +79,11 @@ int main(int argc, char** argv) {
 
 string ref_seq_filename = argv[1];
 #ifdef REV_COMP
-    string rmi_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    //string rmi_filename = ref_seq_filename + ".qbwt4.walg.rev_comp";
+    string rmi_filename = ref_seq_filename + ".rev_comp";
 #else
-    string rmi_filename = ref_seq_filename + ".qbwt4.walg";
+    //string rmi_filename = ref_seq_filename + ".qbwt4.walg";
+    string rmi_filename = ref_seq_filename ;
 #endif
 
 

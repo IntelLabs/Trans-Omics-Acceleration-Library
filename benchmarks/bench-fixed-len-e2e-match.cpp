@@ -153,17 +153,17 @@ int main(int argc, char **argv) {
     __itt_pause();
 #endif
     {
-        printf("Running:\n");
+        fprintf(stderr,"Running:\n");
         int i;
         for(i = 0; i < argc; i++)
         {
-            printf("%s ", argv[i]);
+            fprintf(stderr,"%s ", argv[i]);
         }
-        printf("\n");
+        fprintf(stderr,"\n");
     }
     if(argc < 5)
     {
-        printf("Need following arguments : reference_file query_set z n_threads [batch_size]\n");
+        fprintf(stderr,"Need following arguments : reference_file query_set z n_threads [batch_size]\n");
         return 1;
     }
     int32_t numQueries = 0;
@@ -178,12 +178,12 @@ int main(int argc, char **argv) {
     FMI_search *fmiSearch = new FMI_search(argv[1]);
     fmiSearch->load_index_forward_only();
 
-    printf("before reading queries\n");
+    fprintf(stderr,"before reading queries\n");
     bseq1_t *seqs = bseq_read_one_fasta_file(QUERY_DB_SIZE, &numQueries, fp, &total_size);
 
     if(seqs == NULL)
     {
-        printf("ERROR! seqs = NULL\n");
+        fprintf(stderr,"ERROR! seqs = NULL\n");
         exit(EXIT_FAILURE);
     }
 
@@ -204,26 +204,26 @@ int main(int argc, char **argv) {
             min_len_id = i;
         }
     }
-    printf("max_query_length = %d, min_query_length = %d\n", max_query_length, min_query_length);
-    printf("max_len_id = %d, min_len_id = %d\n", max_len_id, min_len_id);
+    fprintf(stderr,"max_query_length = %d, min_query_length = %d\n", max_query_length, min_query_length);
+    fprintf(stderr,"max_len_id = %d, min_len_id = %d\n", max_len_id, min_len_id);
     assert(max_query_length > 0);
     assert(max_query_length < 10000);
     assert(max_query_length == min_query_length);
     assert(numQueries > 0);
     assert(numQueries * (int64_t)max_query_length < QUERY_DB_SIZE);
     int32_t query_length = max_query_length;
-    printf("numQueries = %d, query_length = %d\n", numQueries, query_length);
+    fprintf(stderr,"numQueries = %d, query_length = %d\n", numQueries, query_length);
     uint8_t *enc_qdb = (uint8_t *)_mm_malloc(numQueries * query_length * sizeof(uint8_t), 64);
     assert(enc_qdb != NULL);
 
     int64_t cind,st;
 #if 0
-    printf("Priting query\n");
+    fprintf(stderr,"Priting query\n");
     for(st = 0; st < query_length; st++)
     {
-        printf("%c", seqs[0].seq[st]);
+        fprintf(stderr,"%c", seqs[0].seq[st]);
     }
-    printf("\n");
+    fprintf(stderr,"\n");
 #endif
     uint64_t r;
     int32_t orig_query_count = numQueries;
@@ -255,12 +255,12 @@ int main(int argc, char **argv) {
 
     if((z != 0) && (z != 1))
     {
-        printf("ERROR! z can only be zero or one.\n");
+        fprintf(stderr,"ERROR! z can only be zero or one.\n");
         exit(-1);
     }
 
     int64_t numSeq = numQueries * (query_length * 3 * z + 1);
-    printf("numSeq = %d, k_l size = %ld\n", numSeq, numQueries * (query_length * 3 * z + 1) * 2 * sizeof(int64_t));
+    fprintf(stderr,"numSeq = %d, k_l size = %ld\n", numSeq, numQueries * (query_length * 3 * z + 1) * 2 * sizeof(int64_t));
     int64_t *k_l_range = (int64_t *)_mm_malloc(numSeq * 2 * sizeof(int64_t), 64);
     memset(k_l_range, 0, numSeq * 2 * sizeof(int64_t));
     int64_t startTick, endTick;
@@ -271,8 +271,8 @@ int main(int argc, char **argv) {
     assert(batch_size < MAX_BATCH_SIZE);
     if(numQueries < (batch_size * numthreads))
     {
-        printf("very few reads for %d threads\n", numthreads);
-        printf("numQueries = %d, batch_size = %d, numthreads = %d\n", numQueries, batch_size, numthreads);
+        fprintf(stderr,"very few reads for %d threads\n", numthreads);
+        fprintf(stderr,"numQueries = %d, batch_size = %d, numthreads = %d\n", numQueries, batch_size, numthreads);
         exit(0);
     }
 
@@ -340,22 +340,22 @@ int main(int argc, char **argv) {
             qsort(buf, read_num_matches, sizeof(uint32_t), compare_uint);
             for(j = 0; j < read_num_matches; j++)
             {
-                printf("%u ", buf[j]);
+                fprintf(stderr,"%u ", buf[j]);
             }
-            printf("\n");
+            fprintf(stderr,"\n");
 #endif
 #endif
         if(read_num_matches > 0) numMapped++;
         numMatches += read_num_matches;
     }
-    printf("numQueries = %d\n",   numQueries);
-    printf("numMatches = %ld\n", numMatches);
-    printf("numMapped = %ld\n",  numMapped);
-    printf("loopTicks = %ld\n", loopTicks);
+    fprintf(stderr,"numQueries = %d\n",   numQueries);
+    fprintf(stderr,"numMatches = %ld\n", numMatches);
+    fprintf(stderr,"numMapped = %ld\n",  numMapped);
+    fprintf(stderr,"loopTicks = %ld\n", loopTicks);
 
-    printf("Consumed %ld cycles\n", totalTicks);
-    printf("Consumed %0.3lf secs\n", totalTicks * 1.0 / get_freq());
-    printf("log, %d, %u, %d, %ld, %0.3lf\n", query_length, orig_query_count, numthreads, totalTicks, totalTicks * 1.0 / get_freq());
+    fprintf(stderr,"Consumed %ld cycles\n", totalTicks);
+    fprintf(stderr,"Consumed %0.3lf secs\n", totalTicks * 1.0 / get_freq());
+    fprintf(stderr,"log, %d, %u, %d, %ld, %0.3lf\n", query_length, orig_query_count, numthreads, totalTicks, totalTicks * 1.0 / get_freq());
 
     //fclose(cpstream);
 

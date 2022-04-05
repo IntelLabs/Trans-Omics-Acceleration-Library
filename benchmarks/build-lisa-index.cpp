@@ -87,9 +87,10 @@ int main(int argc, char** argv) {
     string rmi_filename = ref_seq_filename;
 #endif
 
-{
-   //IPBWT_RMI<int64_t, uint64_t> rmi(seq, seq.size(), rmi_filename, K, num_rmi_leaf_nodes, NULL);
-}
+
+   IPBWT_RMI<int64_t, uint64_t> *rmi =  new IPBWT_RMI<int64_t, uint64_t>(seq, seq.size(), rmi_filename, K, num_rmi_leaf_nodes, NULL);
+
+  delete rmi;
 #ifdef REV_COMP
 { 
    LISA_search<int64_t> qbwt(seq_forward_only, seq_forward_only.size(), argv[1], K, num_rmi_leaf_nodes);

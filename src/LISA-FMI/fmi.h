@@ -27,6 +27,7 @@ Authors: Saurabh Kalikar <saurabh.kalikar@intel.com>; Sanchit Misra <sanchit.mis
 #define FMI_H
 
 #include "sais.h"
+#include "lisa_util.h"
 #include <sys/mman.h>
 
 
@@ -216,7 +217,8 @@ FMI<index_t>::FMI(const string &t, index_t t_size, index_t *sa, string _bases, s
 
 
 template<typename index_t>
-typename FMI<index_t>::Interval FMI<index_t>::backward_extend(Interval intv, char a) const {
+//typename FMI<index_t>::Interval FMI<index_t>::backward_extend(Interval intv, char a) const {
+Interval FMI<index_t>::backward_extend(Interval intv, char a) const {
 #ifndef NO_DNA_ORD 
     const int i = __lg(a-'@'+1); // @ACGT -> 01234
 #else
