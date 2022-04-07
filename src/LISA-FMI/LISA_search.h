@@ -415,7 +415,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     if(ifstream(bin_filename.c_str()).good()) {
         eprintln("Found existing interval tree file %s!!", (char*)bin_filename.c_str());
         // Load interval tree
-	load(bin_filename);
+	    load(bin_filename);
 #ifdef lisa_fmi
         fmi = new FMI<index_t>(t.c_str(), n, NULL, "@"+dna, bin_filename);
 #else
@@ -430,7 +430,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
         eprintln("large width space usage = %.6fN", (double)(b_width.size()*sizeof(b_width[0])*1.0/n));
         return;
     } else {
-	rmi = NULL;
+	    rmi = NULL;
         eprintln("No existing %s. Building...", (char*)bin_filename.c_str());
     }
 
@@ -471,7 +471,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     // TODO: remove this memory allocation as it is not required for interval tree building
     	IPBWT_RMI<index_t, uint64_t> *rmi_index = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data(), lisa_home);
 
-	delete rmi_index;
+	    delete rmi_index;
     }
     
 
@@ -659,6 +659,7 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 						output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
 						td.numSMEMs++;
 						q.prev_l = q.l;
+	//							fprintf(stderr, "SMEM 3: %ld %ld %lu \n", q.l, q.r - 1, q.intv.first );
 #endif
 					}
 				}
@@ -770,6 +771,7 @@ void LISA_search<index_t>::fmi_extend_batched(int cnt, Info* q_batch, threadData
 								output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
 								td.numSMEMs++; 
 								q.prev_l = q.l;
+	//							fprintf(stderr, "SMEM 1: %ld %ld %lu \n", q.l, q.r - 1, q.intv.first );
 							}                                           			
 #endif
 						}
@@ -783,8 +785,10 @@ void LISA_search<index_t>::fmi_extend_batched(int cnt, Info* q_batch, threadData
 					else {
 #ifdef lisa_fmi
 						q.l = it, q.intv={next.low, next.high};  //fmi-continue
+	//							fprintf(stderr, "SMEM 1 intervals: %ld: %lu --- %lu \n", q.l, q.intv.first, q.intv.second );
 #else
 						q.l = it, q.intv={next_tal.first, next_tal.second};  //fmi-continue
+	//							fprintf(stderr, "SMEM 1 intervals: %ld: %lu --- %lu \n", q.l, q.intv.first, q.intv.second );
 #endif
 					}
 				}	
@@ -800,6 +804,7 @@ void LISA_search<index_t>::fmi_extend_batched(int cnt, Info* q_batch, threadData
 						output->tal_smem[td.numSMEMs].s = q.intv.second - q.intv.first;
 						td.numSMEMs++;
 						q.prev_l = q.l;
+	//							fprintf(stderr, "SMEM 2: %ld %ld %lu \n", q.l, q.r - 1, q.intv.first );
 #endif
 					}
 					if(cnt1 < cnt) //More queries to be processed?

@@ -266,7 +266,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
                 exit(0);
             }
         }
-	if(is_sa_null == true) // allocation happened locally, do not free if __sa is passed externally
+		if(is_sa_null == true) // allocation happened locally, do not free if __sa is passed externally
         	free(__sa);
         endTick = __rdtsc();
         eprintln("SA done in %ld cycles.", endTick - startTick);
@@ -293,7 +293,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
             startTick = __rdtsc();
             ipbwt_array = (uint8_t *)aligned_alloc(64, n * NUM_IPBWT_BYTES);
             assert(ipbwt_array != NULL);
-        eprintln("ipbwt_array allocated with size %lu", (unsigned long)n * NUM_IPBWT_BYTES);
+        	eprintln("ipbwt_array allocated with size %lu", (unsigned long)n * NUM_IPBWT_BYTES);
             assert(K<n);
 //#pragma omp parallel for
             for(index_t i=0; i<n; i++) {
@@ -594,7 +594,6 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
             {
                 if(ipbwt(i - 1) >= ipbwt(i))
                 {
-                    //eprintln("%ld] {%lu, %lu} {%lu, %lu}", i, ((int64_t *)ipbwt_array)[2 * (i - 1) + 1], ((int64_t *)ipbwt_array)[2 * (i - 1)], ((int64_t *)ipbwt_array)[2 * i + 1], ((int64_t *)ipbwt_array)[2 * i]);
                     eprintln("%ld] {%lu, %lu} {%lu, %lu}", (long)i, (unsigned long)ipbwt(i - 1).first, (unsigned long)ipbwt(i - 1). second, (unsigned long)ipbwt(i).first, (unsigned long)ipbwt(i).second);
                     exit(0);
                 }
@@ -622,7 +621,6 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
             {
                 if(ipbwt(i - 1) >= ipbwt(i))
                 {
-                    //eprintln("%ld] {%lu, %lu} {%lu, %lu}", i, ((int64_t *)ipbwt_array)[2 * (i - 1) + 1], ((int64_t *)ipbwt_array)[2 * (i - 1)], ((int64_t *)ipbwt_array)[2 * i + 1], ((int64_t *)ipbwt_array)[2 * i]);
                     eprintln("%ld] {%lu, %lu} {%lu, %lu}", (long)i, (unsigned long)ipbwt(i - 1).first, (unsigned long)ipbwt(i - 1). second, (unsigned long)ipbwt(i).first, (unsigned long)ipbwt(i).second);
                     exit(0);
                 }
