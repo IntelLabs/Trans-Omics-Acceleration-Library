@@ -24,11 +24,11 @@ pip install pybind11
 ```bash
 
 pip uninstall umap-learn
-cd umap_fast/umap_extend
+cd umap_extend
 python setup.py install             
 
 
-cd umap_fast/umap
+cd ../umap
 python setup.py install
 ```
 
