@@ -37,14 +37,16 @@ class lisa_hash{
 	public:
 
 		rmi_val_t* p;
-		rmi_val_t* p_bin;
+		//rmi_val_t* p_bin;
 
 	private:
-
+		// klocwork fix -- valid
+		lisa_hash& operator=(const lisa_hash&){ return *this;}
+		lisa_hash(const lisa_hash& src){ /* do not create copies */ }
 		rmi_key_t* keys;
 
 		uint64_t* values_enc;
-		uint64_t* values_enc_bin;
+		//uint64_t* values_enc_bin;
 		
 		uint64_t keys_size;
 		uint64_t p_size;
@@ -54,6 +56,8 @@ class lisa_hash{
 		void mem_alloc(uint64_t hash_size, uint64_t p_size){
 
 		// Removed for memory optimization
+		//klocwork fix : In fact remove the variable "keys" as it is no longer used
+		keys = NULL;
 		#if 0
 			keys = (rmi_key_t*)malloc((1+hash_size)*sizeof(rmi_key_t));
 			keys = keys + 1; // keys[-1] stores total number of keys
@@ -70,7 +74,7 @@ class lisa_hash{
 		//	keys[-1] = keys_size;	
 			this->p_size = p_size;
 
-			fprintf(stderr, "Memory allocated %lld \n", p_size);
+			fprintf(stderr, "Memory allocated %ld \n", p_size);
 
 		}
 		//This function is no longer used. 	
@@ -178,7 +182,7 @@ class lisa_hash{
 			f_size>>p_size;
 			mem_alloc(keys_size, p_size);
 	
-			fprintf(stderr, "Num_keys: %lld, num_values = %lld", keys_size, p_size);
+			fprintf(stderr, "Num_keys: %ld, num_values = %ld", keys_size, p_size);
 			//load(inputFile);
 			load_bin(inputFile);
 		
@@ -210,7 +214,7 @@ class lisa_hash{
 				}							
 				load_time = __rdtsc() - start_time;
 				start_time = __rdtsc();
-				fprintf(stderr,"TIMER LOG: kay-val files loading time- %lld\n", load_time);
+				fprintf(stderr,"TIMER LOG: kay-val files loading time- %ld\n", load_time);
 
 				//string script = "./scripts/build_rmi.sh";
 				string script = "./scripts/build-rmi.linear_spline.linear.sh";
@@ -225,7 +229,7 @@ class lisa_hash{
 				string cmd = script + keys_path + rmi_path + num_leaf + key_type;				
 				system(cmd.c_str());
 			        rmi_building_time = __rdtsc() - start_time;
-				fprintf(stderr,"TIMER LOG: rmi building time- %lld\n", rmi_building_time);
+				fprintf(stderr,"TIMER LOG: rmi building time- %ld\n", rmi_building_time);
 			}
 			rmi = new RMI<rmi_key_t>(&prefix[0]);
 			

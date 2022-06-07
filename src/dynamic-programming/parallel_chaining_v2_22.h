@@ -113,7 +113,28 @@ class dp_chain {
 	__m256i zero_avx2_v;// = _mm512_setzero_si512();
 #endif
 
-	dp_chain(){}
+	dp_chain(){
+		this->max_dist_x = 0;
+		this->max_dist_y = 0;
+		this->bw = 0;
+		this->max_skip = 0;
+		this->max_iter = 0;
+		this->min_cnt = 0;
+		this->min_sc = 0;
+		this->chn_pen_gap = 0.0;
+		this->chn_pen_skip = 0.0;
+
+		this->is_cdna = 0;
+		this->n_seg = 0;
+		this->n_segs = 0;
+		this->gap_scale = 0;
+#ifdef __AVX512BW__
+		zero_v = _mm512_setzero_si512();
+#elif __AVX2__
+		zero_avx2_v = _mm256_setzero_si256();
+#endif
+
+	}
 
 	void test(){
 		printf("hyper-parameters: %d %d %d %d %d %f %d %d\n",max_dist_x, max_dist_y, bw, max_skip, max_iter, gap_scale, is_cdna, n_segs);
@@ -145,6 +166,8 @@ class dp_chain {
 #elif __AVX2__
 		zero_avx2_v = _mm256_setzero_si256();
 #endif
+		this->n_segs = 0;
+		this->gap_scale = 0;
 
 	}
 

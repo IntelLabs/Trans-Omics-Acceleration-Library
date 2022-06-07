@@ -76,6 +76,11 @@ class RMI
     void print_stats();
 
     private:
+    // klocwork fix -- valid
+    RMI& operator=(const RMI&){ return *this;}
+    RMI(const RMI& src){ /* do not create copies */ }
+
+
     int64_t n;
     rmi_key_t *sorted_array;
     //double L0_PARAMETER0 = 0.0;
@@ -148,21 +153,25 @@ rmi_key_t RMI<rmi_key_t>::get_element(int64_t index)
 template<typename rmi_key_t>
 bool RMI<rmi_key_t>::load_sorted_array(char *prefix)
 {
-    char filename[PATH_MAX];
-    strcpy(filename, prefix);
+    //char filename[PATH_MAX];
+    //strcpy(filename, prefix);
+    std::string filename = prefix;
 
 	//suffix
 
 #ifdef UINT64
-    strcat(filename, ".uint64");
+    //strcat(filename, ".uint64");
+    filename = filename + ".uint64";
 #endif
 #ifdef F64
-    strcat(filename, ".f64");
+    //strcat(filename, ".f64");
+    filename = filename + ".f64";
 #endif
     std::ifstream infile(filename, std::ios::in | std::ios::binary);
     if (!infile.good())
     {
-        printf("%s file not found\n", filename);
+        //printf("%s file not found\n", filename.c_str());
+        std::cout<<filename<<" file not found\n";
         exit(0);
     }
     infile.read((char *)&(this->n), sizeof(uint64_t));
@@ -185,14 +194,17 @@ bool RMI<rmi_key_t>::load_sorted_array(char *prefix)
 template<typename rmi_key_t>
 bool RMI<rmi_key_t>::load_rmi(char *prefix)
 {
-    char filename[PATH_MAX];
-    strcpy(filename, prefix);
-    strcat(filename, ".rmi_PARAMETERS");
+    //char filename[PATH_MAX];
+    //strcpy(filename, prefix);
+    std::string filename = prefix;
+    //strcat(filename, ".rmi_PARAMETERS");
+    filename = filename + ".rmi_PARAMETERS";
     std::ifstream infile(filename, std::ios::in | std::ios::binary);
     if (!infile.good())
     {
-        printf("%s file not found\n", filename);
-        exit(0);
+        //printf("%s file not found\n", filename.c_str());
+        std::cout<<filename<<" file not found\n";
+	exit(0);
     }
     infile.read((char *)&(this->L0_PARAMETER0), sizeof(double));
     infile.read((char *)&(this->L0_PARAMETER1), sizeof(double));
@@ -263,7 +275,8 @@ int64_t RMI<rmi_key_t>::lookup(rmi_key_t key)
     int64_t pos = last_mile_search(key, guess, err);
     if(key != sorted_array[pos])
     {
-        printf("key = %lld, sorted_array[%lld] = %lld, err = %ld, gap = %ld\n", key, pos, sorted_array[pos], err, labs(pos - guess));
+	// klocwork fix    
+    	printf("key = %ld, sorted_array[%ld] = %ld, err = %ld, gap = %ld\n", (int64_t) key, (int64_t) pos, (int64_t) sorted_array[pos], err, labs(pos - guess));
         exit(0);
     }
 #ifdef STATS
@@ -509,6 +522,8 @@ void RMI<rmi_key_t>::lookup_batched(rmi_key_t *key_array, int64_t num_queries, i
     for(next_query = 0; next_query < BATCH_SIZE && next_query < num_queries; next_query++)
     {
         BatchMetadata bm;
+    	//klocwork fix
+    	memset(&bm, 0, 1*sizeof(BatchMetadata));
         bm.qid = next_query;
         bm.state = GUESS_RMI_ROOT;
         bm.key = key_array[next_query];
@@ -538,6 +553,8 @@ void RMI<rmi_key_t>::lookup_batched(rmi_key_t *key_array, int64_t num_queries, i
                 {
                     // Get next query
                     BatchMetadata bm;
+    		    // klocwork fix
+		    memset(&bm, 0, 1*sizeof(BatchMetadata));
                     bm.qid = next_query;
                     bm.state = GUESS_RMI_ROOT;
                     bm.key = key_array[next_query];
