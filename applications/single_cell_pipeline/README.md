@@ -87,13 +87,11 @@ export NUMBA_NUM_THREADS=56            # Remember to delete __pycache__ folder f
 
 cd ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/notebooks/
 
-python -m sklearnex 1M_brain_cpu_analysis.py
-
 # Or the jupyter notebook with sklearn patch in it. 
 # from sklearnex import patch_sklearn
 # patch_sklearn()
 
-#jupyter notebook
+jupyter notebook
 ```
 
 ## Docker instructions
