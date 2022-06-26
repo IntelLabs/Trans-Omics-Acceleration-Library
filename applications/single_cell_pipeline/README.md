@@ -68,7 +68,7 @@ python setup.py install                          # Uncomment AVX512 lines in set
 
 
 cd ~/Trans-Omics-Acceleration-Library/applications/UMAP_fast/umap
-python setup.py develop                     # do python setup.py install if moving environment using conda-pack
+python setup.py install                     # do python setup.py install if moving environment using conda-pack
 ```
 
 
