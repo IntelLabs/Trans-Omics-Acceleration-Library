@@ -3,7 +3,24 @@
 ```bash
 git clone --recursive https://github.com/IntelLabs/Trans-Omics-Acceleration-Library.git
 ```
-# Create an Anaconda environment
+
+# Docker instructions (Recommended on Cloud Instance)
+```bash
+# Default values of environment variables is set to NUMEXPR_MAX_THREADS=64, NUMBA_NUM_THREADS=64  (Number of CPUs)
+# inside the docker image. Update Dockerfile to change these variables according to number of CPUs for best performance
+
+cd ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/
+docker build -t scanpy .           # Create a docker image named scanpy
+
+# Download dataset
+wget -P ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/data https://rapids-single-cell-examples.s3.us-east-2.amazonaws.com/1M_brain_cells_10X.sparse.h5ad
+
+docker run -it -p 8888:8888 -v ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/data:/data scanpy   # run docker container with the data folder as volume
+```
+
+# Compile and Run
+
+## Create an Anaconda environment
 ```bash
 conda create --name single_cell python=3.8.0
 conda activate single_cell
@@ -92,15 +109,4 @@ cd ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/notebook
 # patch_sklearn()
 
 jupyter notebook
-```
-
-## Docker instructions
-```bash
-cd ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/
-docker build -t scanpy .           # Create a docker image named scanpy
-
-# Download dataset
-wget -P ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/data https://rapids-single-cell-examples.s3.us-east-2.amazonaws.com/1M_brain_cells_10X.sparse.h5ad
-
-docker run -it -p 8888:8888 -v ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/data:/data scanpy   # run docker container with the data folder as volume
 ```
