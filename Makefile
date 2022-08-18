@@ -134,7 +134,7 @@ endif
 LISA_CC = g++
 LISA_CFLAGS = -DSAIS=1 -std=c++17 -march=native -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
 
-LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  
+LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_
 
 LISA_INCLUDE = -I ./src/LISA-FMI/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
 LISA_LDLIBS = -lz -L./ -ltal -L ./ext/safestringlib/ -lsafestring 

@@ -412,6 +412,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     for(const auto &s:{sizeof(index_t)}) {
         bin_filename += string(".") + to_string(s);
     }
+	rmi = NULL;
     if(ifstream(bin_filename.c_str()).good()) {
         eprintln("Found existing interval tree file %s!!", (char*)bin_filename.c_str());
         // Load interval tree
@@ -422,7 +423,10 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
     	fmiSearch = this;
     	load_index_with_rev_complement();
 #endif
+
+#ifndef LINEAR_ONLY
         rmi = new IPBWT_RMI<index_t, uint64_t>(t, n, rmi_filename, K, num_rmi_leaf_nodes, NULL);
+#endif
         eprintln("Load successful.");
         eprintln("large lcp size = %lu", large_lcpp1.size());
         eprintln("large lcp space usage = %.6fN", (double)(large_lcpp1.size()*sizeof(large_lcpp1[0])*1.0/n));
@@ -430,7 +434,7 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
         eprintln("large width space usage = %.6fN", (double)(b_width.size()*sizeof(b_width[0])*1.0/n));
         return;
     } else {
-	    rmi = NULL;
+	    //rmi = NULL;
         eprintln("No existing %s. Building...", (char*)bin_filename.c_str());
     }
 
@@ -467,13 +471,14 @@ LISA_search<index_t>::LISA_search(string t, index_t t_size, string ref_seq_filen
 
     fprintf(stderr, "ref file name for fmi: %s size = %ld\n", ref_seq_filename.c_str(), t.size()); 
 	// build rnk = sa^(-1)
+#ifndef LINEAR_ONLY
     {
     // TODO: remove this memory allocation as it is not required for interval tree building
     	IPBWT_RMI<index_t, uint64_t> *rmi_index = new IPBWT_RMI<index_t, uint64_t>(t, t.size(), rmi_filename, K, num_rmi_leaf_nodes, sa.data(), lisa_home);
 
 	    delete rmi_index;
     }
-    
+#endif    
 
     // build lcp
     {
@@ -603,7 +608,12 @@ template<typename index_t>
 void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t batch_size, threadData &td, Output* output, int min_seed_len, bool apply_lisa){
 	Info *chunk_pool = td.chunk_pool;
 	int &chunk_cnt = td.chunk_cnt;
-
+	int K;//this->rmi->K;		
+#ifdef LINEAR_ONLY
+	apply_lisa = false;
+#else 
+	K = this->rmi->K;
+#endif
 	uint64_t *str_enc = td.str_enc;
 	int64_t *intv_all = td.intv_all;
 
@@ -613,7 +623,6 @@ void LISA_search<index_t>::smem_rmi_batched(Info *qs, int64_t qs_size, int64_t b
 	Info* tree_pool = td.tree_pool;
 	int &tree_cnt = td.tree_cnt;
 
-	int K = this->rmi->K;		
 
 	LISA_search<index_t> &qbwt = *(this);
 	
