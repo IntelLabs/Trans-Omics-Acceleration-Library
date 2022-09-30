@@ -38,7 +38,7 @@ RUN apt-get update && \
 
 
 RUN conda install python==3.8.0
-RUN conda install -y seaborn scikit-learn statsmodels numba pytables
+RUN conda install -y seaborn scikit-learn=1.0.2 statsmodels numba pytables
 RUN conda install -y -c conda-forge mkl-service
 RUN conda install -y -c conda-forge python-igraph leidenalg
 RUN conda install -y -c conda-forge cython jinja2 clang-tools

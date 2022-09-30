@@ -28,11 +28,11 @@ conda activate single_cell
 
 ## Necessary scanpy tools
 ```bash
-conda install -y seaborn scikit-learn statsmodels numba pytables
+conda install -y seaborn scikit-learn=1.0.2 statsmodels numba pytables
 conda install -y -c conda-forge mkl-service
 conda install -y -c conda-forge python-igraph leidenalg
 conda install -y -c conda-forge cython jinja2 clang-tools
-conda install -y -c katanagraph/label/dev -c conda-forge katana-python==0.1.102.dev+108.0.0d2943
+conda install -y -c katanagraph/label/dev -c conda-forge katana-python
 ```
 
 ## Install scanpy
