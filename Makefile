@@ -25,10 +25,11 @@
 ##		Saurabh Kalikar <saurabh.kalikar@intel.com>
 ##*****************************************************************************************/
 
+BENCH_SMITH_WATERMAN=	bench-smith-waterman
 BUILD_INDEX_FOR_ONLY= build-index-forward-only
 BUILD_INDEX_WITH_RC= build-index-with-rev-complement
-BENCH_SMEM=		bench-smem
-BENCH_FIXED_LEN_E2E=		bench-fixed-len-e2e-match
+BENCH_SMEM=	bench-smem
+BENCH_FIXED_LEN_E2E=	bench-fixed-len-e2e-match
 #CXX=		icpc
 ifeq ($(CXX), icpc)
     CC= icc
@@ -40,10 +41,14 @@ ARCH_FLAGS=	-msse4.1
 #ARCH_FLAGS=	-mavx512bw
 MEM_FLAGS=	-DSAIS=1
 CPPFLAGS=	-DENABLE_PREFETCH $(MEM_FLAGS) -DKSW=1
-INCLUDES=   -Iext -Iext/safestringlib/include -Isrc/FMI/
+INCLUDES=   -Iext -Iext/safestringlib/include -Isrc/FMI/ -Isrc/alignment/Smith-Waterman/
 LIBS=		-fopenmp -lm -lz -L. -ltal -Lext/safestringlib/ -lsafestring
 OBJS=		ext/utils.o \
 			ext/kstring.o ext/bntseq.o \
+			src/alignment/Smith-Waterman/PairWiseSW.o \
+			src/alignment/Smith-Waterman/PairWiseSW_32.o \
+			src/alignment/Smith-Waterman/PairWiseSW_16.o \
+			src/alignment/Smith-Waterman/PairWiseSW_8.o \
 			src/FMI/FMI_search.o ext/bseq.o
 TAL_LIB=    libtal.a
 SAFE_STR_LIB=    ext/safestringlib/libsafestring.a
@@ -80,7 +85,10 @@ CXXFLAGS=	-g -O3 -fopenmp $(ARCH_FLAGS)
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $< -o $@
 
-all:$(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+all:$(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+
+$(BENCH_SMITH_WATERMAN):$(TAL_LIB) $(SAFE_STR_LIB) benchmarks/bench-smith-waterman.o
+	$(CXX) $(CXXFLAGS) benchmarks/bench-smith-waterman.o $(LIBS) -o $@
 
 $(BUILD_INDEX_FOR_ONLY):$(TAL_LIB) $(SAFE_STR_LIB) benchmarks/build-index-forward-only.o
 	$(CXX) $(CXXFLAGS) benchmarks/build-index-forward-only.o $(LIBS) -o $@
@@ -101,7 +109,7 @@ $(SAFE_STR_LIB):
 	cd ext/safestringlib/ && make clean && make CC=$(CC) directories libsafestring.a
 
 clean:
-	rm -fr src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+	rm -fr src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
 	cd ext/safestringlib && make CC=$(CC) clean
 
 depend:
@@ -125,6 +133,13 @@ dp_chain: ./benchmarks/bench-dp-chaining.cpp ./src/dynamic-programming/parallel_
 
 # DO NOT DELETE
 
+src/alignment/Smith-Waterman/PairWiseSW.o: src/alignment/Smith-Waterman/PairWiseSW.h
+src/alignment/Smith-Waterman/PairWiseSW_32.o: src/alignment/Smith-Waterman/PairWiseSW_32.h
+src/alignment/Smith-Waterman/PairWiseSW_32.o: src/alignment/Smith-Waterman/PairWiseSW.h
+src/alignment/Smith-Waterman/PairWiseSW_16.o: src/alignment/Smith-Waterman/PairWiseSW_16.h
+src/alignment/Smith-Waterman/PairWiseSW_16.o: src/alignment/Smith-Waterman/PairWiseSW.h
+src/alignment/Smith-Waterman/PairWiseSW_8.o: src/alignment/Smith-Waterman/PairWiseSW_8.h
+src/alignment/Smith-Waterman/PairWiseSW_8.o: src/alignment/Smith-Waterman/PairWiseSW.h
 src/FMI/FMI_search.o: src/FMI/FMI_search.h ext/bntseq.h
 src/FMI/FMI_search.o: ext/utils.h  ext/sais.h
 ext/bntseq.o: ext/bntseq.h ext/utils.h ext/kseq.h
@@ -133,5 +148,11 @@ ext/bntseq.o: ext/bntseq.h ext/utils.h ext/kseq.h
 ext/kstring.o: ext/kstring.h
 ext/utils.o: ext/utils.h ext/kseq.h
 ext/bseq.o: ext/bseq.h ext/utils.h ext/kseq.h
+benchmarks/bench-smith-waterman.o: src/alignment/Smith-Waterman/PairWiseSW.h
+benchmarks/bench-smith-waterman.o: src/alignment/Smith-Waterman/PairWiseSW_32.h
+benchmarks/bench-smith-waterman.o: src/alignment/Smith-Waterman/PairWiseSW_16.h
+benchmarks/bench-smith-waterman.o: src/alignment/Smith-Waterman/PairWiseSW_8.h
 benchmarks/bench-smem.o: src/FMI/FMI_search.h ext/bntseq.h ext/utils.h
 benchmarks/bench-smem.o:  ext/sais.h
+benchmarks/bench-fixed-len-e2e-match.o: src/FMI/FMI_search.h ext/bntseq.h ext/utils.h
+benchmarks/bench-fixed-len-e2e-match.o:  ext/sais.h
