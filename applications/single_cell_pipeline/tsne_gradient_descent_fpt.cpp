@@ -809,6 +809,95 @@ services::Status repulsionKernelImpl(MemoryCtxType<IdxType, xyType<DataType>> & 
     return services::Status();
 }
 
+
+template <bool DivComp, typename IdxType, typename DataType, daal::CpuType cpu>
+services::Status attractiveKernelImpl_scaler(const DataType * val, const IdxType * col, const size_t * row, MemoryCtxType<IdxType, xyType<DataType>> & mem,
+                                      DataType & zNorm, DataType & divergence, const IdxType N, const IdxType nnz,
+                                      const IdxType nElements, const DataType exaggeration)
+{
+    DAAL_CHECK_MALLOC(val);
+    DAAL_CHECK_MALLOC(col);
+    DAAL_CHECK_MALLOC(row); 
+
+    const DataType multiplier = exaggeration * DataType(zNorm);
+    divergence                = 0.;
+
+    const IdxType prefetch_dist = 32;
+
+    daal::TlsSum<DataType, cpu> divTlsData(1);
+    daal::tls<DataType *> logTlsData([=]() { return services::internal::service_scalable_calloc<DataType, cpu>(nElements); });
+
+    const IdxType nThreads    = threader_get_threads_number();
+    const IdxType sizeOfBlock = services::internal::min<cpu, size_t>(256, N / nThreads + 1);
+    const IdxType nBlocks     = N / sizeOfBlock + !!(N % sizeOfBlock);
+
+    // daal::static_threader_for(nBlocks, [&](IdxType iBlock, IdxType tid) {
+    daal::threader_for(nBlocks, nBlocks, [&](IdxType iBlock) {
+        const IdxType iStart = iBlock * sizeOfBlock;
+        const IdxType iEnd   = services::internal::min<cpu, IdxType>(N, iStart + sizeOfBlock);
+        DataType * logLocal = logTlsData.local();
+        DataType * divLocal = divTlsData.local();
+
+        xyType<DataType> row_point;
+        IdxType iCol, prefetch_index;
+        DataType y1d, y2d, sqDist, PQ;
+        
+        for (IdxType iRow = iStart; iRow < iEnd; ++iRow)
+        {
+            size_t iSize = 0;
+            mem.attr[iRow].x  = 0.0;
+            mem.attr[iRow].y  = 0.0;
+            row_point = mem.pos[iRow];
+
+            for (IdxType index = row[iRow] - 1; index < row[iRow + 1] - 1; ++index)    // 4*N
+            {
+                prefetch_index = index + prefetch_dist;
+                if(prefetch_index < nnz)
+                    _mm_prefetch(&mem.pos[col[prefetch_index] - 1], _MM_HINT_T0);
+
+                iCol = col[index] - 1;                            // 4*NNZ byte
+
+                y1d    = row_point.x - mem.pos[iCol].x;     // 1*NNZ Flop, 4*N + 4*NNZ byte
+                y2d    = row_point.y - mem.pos[iCol].y;     // 1*NNZ Flop, 4*N + 4*NNZ byte
+                // const DataType sqDist = services::internal::max<cpu, DataType>(DataType(0), y1d * y1d + y2d * y2d); // To deal with NaNs     // 4*NNZ Flop
+                // const DataType PQ     = val[index] / (sqDist + 1.);            // 1*NNZ div, 1*NNZ flop, 4*NNZ byte
+                sqDist = 1.0 + y1d * y1d + y2d * y2d;
+                PQ     = val[index] / sqDist;
+
+                // Apply forces
+                mem.attr[iRow].x += PQ * y1d;
+                mem.attr[iRow].y += PQ * y2d;
+                if (DivComp)                                        
+                {
+                    // logLocal[iSize++] = val[index] * multiplier * (1. + sqDist);       // 3*NNZ Flop
+                    logLocal[iSize++] = val[index] * multiplier * sqDist;
+                }
+            }
+
+            if (DivComp)
+            {
+                Math<DataType, cpu>::vLog(iSize, logLocal, logLocal);
+                IdxType start = row[iRow] - 1;
+                for (IdxType index = 0; index < iSize; ++index)
+                {
+                    divLocal[0] += val[start + index] * logLocal[index];               // 2*NNZ Flop
+                }
+            }
+        }
+
+    });
+
+    divTlsData.reduceTo(&divergence, 1);
+    divergence *= exaggeration;
+    logTlsData.reduce([&](DataType * buf) { services::internal::service_scalable_free<DataType, cpu>(buf); });
+
+    //Find_Normalization
+    zNorm = DataType(1) / zNorm;
+    // zNorm = DataType(1) / (zNorm - DataType(N));  // old code
+
+    return services::Status();
+}
+
 template <bool DivComp, typename IdxType, typename DataType, daal::CpuType cpu>
 services::Status attractiveKernelImpl(const DataType * val, const IdxType * col, const size_t * row, MemoryCtxType<IdxType, xyType<DataType>> & mem,
                                       DataType & zNorm, DataType & divergence, const IdxType N, const IdxType nnz,
@@ -1416,8 +1505,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
-                                                                            nnz, nElements, exaggeration);
+                status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                                                                             N, nnz, nElements, exaggeration);
+                // status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
+                //                                                             nnz, nElements, exaggeration);
         }
         else
         {
@@ -1425,8 +1516,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
                                                                                 N, nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                                                                                N, nnz, nElements, exaggeration);
+                status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                                                                             N, nnz, nElements, exaggeration);
+                // status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                                 N, nnz, nElements, exaggeration);
         }
 
         DAAL_CHECK_STATUS_VAR(status);
@@ -1442,7 +1535,6 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
  
         if ((i + 1) % nIterCheck == 0)
         {
-            // printf("     Divergence = %f, radius = %lf \n", divergence, radius);
             if (divergence < bestDivergence)
             {
                 bestDivergence = divergence;
@@ -1498,8 +1590,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
-                                                                            nnz, nElements, exaggeration);
+                status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                                                                             N, nnz, nElements, exaggeration);
+                // status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
+                //                                                             nnz, nElements, exaggeration);
         }
         else
         {
@@ -1507,8 +1601,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
                                                                              N, nnz, nElements, exaggeration);
+                // status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                              N, nnz, nElements, exaggeration);
         }
 
         DAAL_CHECK_STATUS_VAR(status);
@@ -1524,7 +1620,6 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
 
         if (((i + 1) % nIterCheck == 0) || (i == maxIter - 1))
         {
-            // printf("     Divergence = %f, radius = %lf \n", divergence, radius);
             if (divergence < bestDivergence)
             {
                 bestDivergence = divergence;
@@ -1560,10 +1655,6 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
     std::cout << "     Gradient norm = " << gradNorm << std::endl;
     std::cout << "     Last iteration = " << curIter << std::endl;
     
-    // printf("     bestDivergence = %f \n", bestDivergence);
-    // printf("     Divergence = %f \n", divergence);
-    // printf("     Gradient norm = %f \n", gradNorm);
-    // printf("     Last iteration = %f \n", curIter);
 
     //save results
 
