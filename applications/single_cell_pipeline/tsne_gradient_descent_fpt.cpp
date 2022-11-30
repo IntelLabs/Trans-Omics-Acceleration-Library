@@ -1505,10 +1505,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                                                                             N, nnz, nElements, exaggeration);
-                // status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
-                //                                                             nnz, nElements, exaggeration);
+                //status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                             N, nnz, nElements, exaggeration);
+                status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
+                                                                            nnz, nElements, exaggeration);
         }
         else
         {
@@ -1516,10 +1516,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
                                                                                 N, nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                                                                             N, nnz, nElements, exaggeration);
-                // status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                //                                                                 N, nnz, nElements, exaggeration);
+                // status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                              N, nnz, nElements, exaggeration);
+                status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                                                                                N, nnz, nElements, exaggeration);
         }
 
         DAAL_CHECK_STATUS_VAR(status);
@@ -1590,10 +1590,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                                                                             N, nnz, nElements, exaggeration);
-                // status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
-                //                                                             nnz, nElements, exaggeration);
+                //status = attractiveKernelImpl_scaler<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                             N, nnz, nElements, exaggeration);
+                status = attractiveKernelImpl<true, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
+                                                                            nnz, nElements, exaggeration);
         }
         else
         {
@@ -1601,10 +1601,10 @@ services::Status tsneGradientDescentImpl(const NumericTablePtr initTable, const 
                 status = attractiveKernelImpl_vdouble<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence, N,
                                                                             nnz, nElements, exaggeration);
             else
-                status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //status = attractiveKernelImpl_scaler<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
+                //                                                             N, nnz, nElements, exaggeration);
+                status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
                                                                              N, nnz, nElements, exaggeration);
-                // status = attractiveKernelImpl<false, IdxType, DataType, cpu>(val, col_i32, row, mem, zNorm, divergence,
-                //                                                              N, nnz, nElements, exaggeration);
         }
 
         DAAL_CHECK_STATUS_VAR(status);
