@@ -91,8 +91,8 @@ RUN python setup.py install
 WORKDIR ../umap/
 RUN python setup.py install  
 
-ENV NUMEXPR_MAX_THREADS=64
-ENV NUMBA_NUM_THREADS=64
+# ENV NUMEXPR_MAX_THREADS=64
+# ENV NUMBA_NUM_THREADS=64
 
 WORKDIR /workspace
 CMD . /oneDAL/__release_lnx/daal/latest/env/vars.sh intel64 \
