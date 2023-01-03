@@ -67,6 +67,7 @@ ENV NO_DIST=1
 ENV OFF_ONEDAL_IFACE=1
 
 WORKDIR /scikit-learn-intelex
+COPY ./_t_sne.py /scikit-learn-intelex/daal4py/sklearn/manifold/
 
 RUN . /oneDAL/__release_lnx/daal/latest/env/vars.sh intel64 \
     && python setup.py install --single-version-externally-managed --record=record.txt \

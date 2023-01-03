@@ -66,6 +66,7 @@ cd ..
 
 git clone https://github.com/intel/scikit-learn-intelex.git
 cd scikit-learn-intelex/
+cp ~/Trans-Omics-Acceleration-Library/applications/single_cell_pipeline/_t_sne.py daal4py/sklearn/manifold/            # Replace the _t_sne.py file
 
 python setup.py install --single-version-externally-managed --record=record.txt       # Use "git clean -dfx" for cleaning before this step
 python setup_sklearnex.py install --single-version-externally-managed --record=record_sklearnex.txt
