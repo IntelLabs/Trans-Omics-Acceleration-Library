@@ -450,7 +450,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
         //exit(0);
         
 	fprintf(stderr, "Running  rmi-build script..\n");
-        string shell_cmd = "cd " + lisa_home + "&& ./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes) + " " + "F64";
+        string shell_cmd = "cd " + lisa_home + "&& bash ./scripts/build-rmi.linear_spline.linear.sh " + ipbwt_f64_filename + " " + rmi_filename + " " + to_string(num_rmi_leaf_nodes) + " " + "F64";
 	system(shell_cmd.c_str());
 	
 	fprintf(stderr, "rmi-build script done..\n");

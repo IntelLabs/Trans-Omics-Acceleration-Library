@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/bin/bash
 set -v
 #sorted array file full path
 A=$1
@@ -11,6 +11,9 @@ T=$4
 echo "$A"
 echo "$B"
 echo "$m"
+
+# Hard coded: Need to fix
+CXX=g++
 
 #cd build-rmi/learned-systems-rmi
 cd  ext/build-rmi/learned-systems-rmi
@@ -25,7 +28,7 @@ rm sorted_doubles_rmi.cpp sorted_doubles_rmi.h sorted_doubles_rmi_data.h
 cp learned-systems-rmi/sorted_doubles_rmi.cpp .
 cp learned-systems-rmi/sorted_doubles_rmi.h .
 cp learned-systems-rmi/sorted_doubles_rmi_data.h .
-./modify_generated_code.sh sorted_doubles_rmi $m
+bash ./modify_generated_code.sh sorted_doubles_rmi $m
 rm rmi-minimizer
 ${CXX} rmi-main.cpp sorted_doubles_rmi.cpp -D$T -o rmi-minimizer
 time ./rmi-minimizer $A $B > out
