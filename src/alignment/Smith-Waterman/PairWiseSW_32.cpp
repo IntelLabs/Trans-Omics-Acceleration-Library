@@ -50,7 +50,7 @@ Author: Sanchit Misra <sanchit.misra@intel.com>
 #define DUMMY1 'B'
 #define DUMMY2 'D'
 
-#if defined(__AVX512__)
+#if defined(__AVX512BW__)
 
 #define SIMD_WIDTH 16
 #define _MM_INT_TYPE __m512i 
@@ -120,7 +120,7 @@ PairWiseSW_32::~PairWiseSW_32()
 
 void PairWiseSW_32::getScores(SeqPair *pairArray, uint8_t *seqBuf, int32_t numPairs, uint16_t numThreads)
 {
-#if defined(__AVX512__)
+#if defined(__AVX512BW__)
     printf("AVX512 mode!\n");
 #else
     printf("Non AVX512 mode!\n");

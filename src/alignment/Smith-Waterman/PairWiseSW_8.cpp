@@ -50,7 +50,7 @@ Author: Sanchit Misra <sanchit.misra@intel.com>
 #define DUMMY1 'B'
 #define DUMMY2 'D'
 
-#if defined(__AVX512__)
+#if defined(__AVX512BW__)
 
 #define SIMD_WIDTH 64
 #define _MM_INT_TYPE __m512i 
