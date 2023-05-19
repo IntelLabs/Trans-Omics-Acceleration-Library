@@ -1,0 +1,1 @@
+The single cell pipeline has been moved to this location - https://github.com/IntelLabs/Open-Omics-Acceleration-Framework/tree/main/pipelines/single_cell_pipeline
