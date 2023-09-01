@@ -77,6 +77,8 @@ endif
 #CXXFLAGS=	-g -O3 -fpermissive $(ARCH_FLAGS) #-Wall ##-xSSE2
 CXXFLAGS=	-g -O3 -fopenmp $(ARCH_FLAGS)
 
+
+
 #.PHONY:all clean depend
 .PHONY:all clean depend
 #.PHONY:all clean
@@ -85,7 +87,7 @@ CXXFLAGS=	-g -O3 -fopenmp $(ARCH_FLAGS)
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $< -o $@
 
-all:$(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+all:$(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E) lisa
 
 $(BENCH_SMITH_WATERMAN):$(TAL_LIB) $(SAFE_STR_LIB) benchmarks/bench-smith-waterman.o
 	$(CXX) $(CXXFLAGS) benchmarks/bench-smith-waterman.o $(LIBS) -o $@
@@ -109,7 +111,7 @@ $(SAFE_STR_LIB):
 	cd ext/safestringlib/ && make clean && make CC=$(CC) directories libsafestring.a
 
 clean:
-	rm -fr src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+	rm -fr ./*.o src/FMI/*.o src/LISA-FMI/*.o src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
 	cd ext/safestringlib && make CC=$(CC) clean
 
 depend:
@@ -129,6 +131,42 @@ lisa_hash: ./benchmarks/build-lisa-hash-index.cpp  ./src/LISA-hash/lisa_hash.h
 #Dynamic programming based chaining benchmark
 dp_chain: ./benchmarks/bench-dp-chaining.cpp ./src/dynamic-programming/parallel_chaining_32_bit.h
 	$(CXX) ./benchmarks/bench-dp-chaining.cpp -I src/dynamic-programming/ -Ofast -o bench-dp-chaining -march=native -DDEBUG
+
+
+# LISA search compilation
+HP= -DNO_HUGE_PAGE
+ifeq ($(huge_page), 1)
+	HP= -DHUGE_PAGE
+endif
+
+LISA_CC = g++
+LISA_CFLAGS = -DSAIS=1 -std=c++17 -march=native -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
+
+LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_
+
+LISA_INCLUDE = -I ./src/LISA-FMI/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
+LISA_LDLIBS = -lz -L./ -ltal -L ./ext/safestringlib/ -lsafestring 
+
+OBJ_CPP =  ./src/LISA-FMI/*.cpp
+
+VTUNE = -DVTUNE_ANALYSIS -I/swtools/intel/vtune_amplifier/include/ -littnotify -L/swtools/intel/vtune_amplifier/lib64/ 
+
+lisa: smem-lisa exact-search-lisa build-index-forward-only-lisa build-index-with-rev-complement-lisa
+smem-lisa: ./benchmarks/bench-smem-lisa.cpp
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${HP} -DREV_COMP ${LISA_INCLUDE} ${OBJ_CPP}  ./benchmarks/bench-smem-lisa.cpp  ${LISA_LDLIBS} -DPRINT_OUTPUT -o smem-lisa.o
+
+
+exact-search-lisa: ./benchmarks/bench-fixed-len-e2e-match-lisa.cpp
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${HP} ${LISA_INCLUDE} ${OBJ_CPP} ./benchmarks/bench-fixed-len-e2e-match-lisa.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o exact-search-lisa.o 
+
+
+build-index-forward-only-lisa: ./benchmarks/build-lisa-index.cpp
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${LISA_INCLUDE} ${OBJ_CPP} ./benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-forward-only-lisa.o
+
+build-index-with-rev-complement-lisa: ./benchmarks/build-lisa-index.cpp
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} -DREV_COMP ${LISA_INCLUDE} ${OBJ_CPP} ./benchmarks/build-lisa-index.cpp ${LISA_LDLIBS} -o build-index-with-rev-complement-lisa.o
+
+
 
 
 # DO NOT DELETE

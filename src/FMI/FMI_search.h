@@ -31,6 +31,7 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <utility>
 #include <immintrin.h>
 #include <limits.h>
 #include <fstream>
@@ -434,7 +435,7 @@ class FMI_search
                   int32_t numthreads,
                   SMEM *matchArray,
                   int64_t *numTotalSmem);
-    
+
     void getSMEMsOnePosOneThread(uint8_t *enc_qdb,
                                  int16_t *query_pos_array,
                                  int32_t *min_intv_array,
@@ -503,13 +504,18 @@ class FMI_search
     int64_t reference_seq_len;
     int64_t sentinel_index;
     bwaidx_fm_t *idx;    
+        
+    CP_OCC *cp_occ;
+    int64_t count[5];
+    SMEM backwardExt(SMEM smem, uint8_t a);
+
+    // Single strand fmi extension
+    std::pair<int64_t, int64_t> backwardExt_light(std::pair<int64_t, int64_t> intv, uint8_t a);
 private:
         char file_name[PATH_MAX];
         int64_t index_alloc;
-        int64_t count[5];
         uint32_t *sa_ls_word;
         int8_t *sa_ms_byte;
-        CP_OCC *cp_occ;
 
     uint64_t *one_hot_mask_array;
 
@@ -538,7 +544,6 @@ private:
                            int64_t ref_seq_len,
                            int64_t *sa_bwt,
                            int64_t *count);    
-        SMEM backwardExt(SMEM smem, uint8_t a);
 };
 
 #endif

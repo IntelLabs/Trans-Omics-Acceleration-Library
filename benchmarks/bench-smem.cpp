@@ -57,17 +57,17 @@ int main(int argc, char **argv) {
     __itt_pause();
 #endif
     {
-        printf("Running:\n");
+        fprintf(stderr,"Running:\n");
         int i;
         for(i = 0; i < argc; i++)
         {
-            printf("%s ", argv[i]);
+            fprintf(stderr,"%s ", argv[i]);
         }
-        printf("\n");
+        fprintf(stderr,"\n");
     }
     if(argc!=6)
     {
-        printf("Need five arguments : ref_file query_set batch_size minSeedLen n_threads\n");
+        fprintf(stderr,"Need five arguments : ref_file query_set batch_size minSeedLen n_threads\n");
         return 1;
     }
 
@@ -83,12 +83,12 @@ int main(int argc, char **argv) {
     FMI_search *fmiSearch = new FMI_search(argv[1]);
     fmiSearch->load_index_with_rev_complement();
 
-    printf("before reading sequences\n");
+    fprintf(stderr,"before reading sequences\n");
     bseq1_t *seqs = bseq_read_one_fasta_file(QUERY_DB_SIZE, &numReads, fp, &total_size);
 
     if(seqs == NULL)
     {
-        printf("ERROR! seqs = NULL\n");
+        fprintf(stderr,"ERROR! seqs = NULL\n");
         exit(EXIT_FAILURE);
     }
     int32_t *query_cum_len_ar = (int32_t *)_mm_malloc(numReads * sizeof(int32_t), 64);
@@ -106,18 +106,18 @@ int main(int argc, char **argv) {
     assert(max_readlength < 10000);
     assert(numReads > 0);
     assert(numReads * max_readlength < QUERY_DB_SIZE);
-    printf("numReads = %d, max_readlength = %d, min_readlength = %d\n", numReads, max_readlength, min_readlength);
+    fprintf(stderr,"numReads = %d, max_readlength = %d, min_readlength = %d\n", numReads, max_readlength, min_readlength);
     uint8_t *enc_qdb=(uint8_t *)malloc(numReads * max_readlength * sizeof(uint8_t));
     assert(enc_qdb != NULL);
 
     int64_t cind,st;
 #if 0
-    printf("Priting query\n");
+    fprintf(stderr,"Priting query\n");
     for(st = 0; st < max_readlength; st++)
     {
-        printf("%c", seqs[0].seq[st]);
+        fprintf(stderr,"%c", seqs[0].seq[st]);
     }
-    printf("\n");
+    fprintf(stderr,"\n");
 #endif
     uint64_t r;
     for (st=0; st < numReads; st++) {
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
                           break;
                 default: enc_qdb[r+cind]=4;
             }
-            //printf("%c %d\n", seqs[st].seq[r], enc_qdb[r + cind]);
+            //fprintf(stderr,"%c %d\n", seqs[st].seq[r], enc_qdb[r + cind]);
         }
     }
 
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
         int tid = omp_get_thread_num();
 
         if(tid == 0)
-            printf("Running %d threads\n", omp_get_num_threads());
+            fprintf(stderr,"Running %d threads\n", omp_get_num_threads());
     }
 
     int32_t *min_intv_array = (int32_t *)_mm_malloc(numReads * sizeof(int32_t), 64);
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
                 rid_array[j] = j;
             }
             int32_t batch_id = i/batch_size;
-            //printf("%d] i = %d, batch_count = %d, batch_size = %d\n", tid, i, batch_count, batch_size);
+            //fprintf(stderr,"%d] i = %d, batch_count = %d, batch_size = %d\n", tid, i, batch_count, batch_size);
             //fflush(stdout);
             if((matchArrayAlloc - myTotalSmems) < (batch_size * max_readlength))
             {
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
         }
 
         int64_t endTick = __rdtsc();
-        printf("%d] %ld ticks, workTicks = %ld\n", tid, endTick - startTick, workTicks[tid]);
+        fprintf(stderr,"%d] %ld ticks, workTicks = %ld\n", tid, endTick - startTick, workTicks[tid]);
         _mm_free(rid_array);
     }
 
@@ -252,9 +252,9 @@ int main(int argc, char **argv) {
         if(workTicks[i] > maxTicks) maxTicks = workTicks[i];
     }
     double avgTicks = (sumTicks * 1.0) / numthreads;
-    printf("avgTicks = %lf, maxTicks = %ld, load imbalance = %lf\n", avgTicks, maxTicks, maxTicks/avgTicks);
+    fprintf(stderr,"avgTicks = %lf, maxTicks = %ld, load imbalance = %lf\n", avgTicks, maxTicks, maxTicks/avgTicks);
 
-    printf("Consumed: %ld cycles\n", endTick - startTick);
+    fprintf(stderr,"Consumed: %ld cycles\n", endTick - startTick);
 
     int64_t totalSmem = 0;
     int32_t batch_id = 0;
@@ -262,9 +262,9 @@ int main(int argc, char **argv) {
     {
         totalSmem += numTotalSmem[batch_id];
     }
-    printf("totalSmems = %ld\n", totalSmem);
+    fprintf(stderr,"totalSmems = %ld\n", totalSmem);
 
-#ifdef PRINT_OUTPUT
+#if 1 //PRINT_OUTPUT
     int32_t prevRid = -1;
     for(batch_id = 0; batch_id < num_batches; batch_id++)
     {
@@ -281,17 +281,17 @@ int main(int argc, char **argv) {
             }
             prevRid = smem.rid;
             printf("[%u,%u]", smem.m, smem.n + 1);
-            // printf("%u, %u]", smem.k, smem.s);
-#if 1
-            printf(" ["); 
+            printf("[%lu, %lu]", smem.k, smem.s);
+#if 0
+            fprintf(stderr," ["); 
             int64_t u1, u2, u3;
             u1 = smem.k;
             u2 = smem.k + smem.s;
             for(u3 = u1; u3 < u2; u3++)
             {
-                printf("%ld,", fmiSearch->get_sa_entry(u3));
+                fprintf(stderr,"%ld,", fmiSearch->get_sa_entry(u3));
             }
-            printf("]"); 
+            fprintf(stderr,"]"); 
 #endif
             printf("\n");
         }
