@@ -40,7 +40,7 @@ endif
 ARCH_FLAGS=	-msse4.1
 #ARCH_FLAGS=	-mavx512bw
 MEM_FLAGS=	-DSAIS=1
-CPPFLAGS=	-DENABLE_PREFETCH $(MEM_FLAGS) -DKSW=1
+CPPFLAGS=	-DENABLE_PREFETCH $(MEM_FLAGS) -DKSW=1 -DTAL_BENCHMARK
 INCLUDES=   -Iext -Iext/safestringlib/include -Isrc/FMI/ -Isrc/alignment/Smith-Waterman/
 LIBS=		-fopenmp -lm -lz -L. -ltal -Lext/safestringlib/ -lsafestring
 OBJS=		ext/utils.o \
@@ -142,7 +142,7 @@ endif
 LISA_CC = g++
 LISA_CFLAGS = -DSAIS=1 -std=c++17 -march=native -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
 
-LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_
+LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_ -DTAL_BENCHMARK
 
 LISA_INCLUDE = -I ./src/LISA-FMI/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
 LISA_LDLIBS = -lz -L./ -ltal -L ./ext/safestringlib/ -lsafestring 

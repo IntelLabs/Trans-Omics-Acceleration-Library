@@ -1026,7 +1026,10 @@ void FMI_search::load_index(int for_only)
 
     fprintf(stderr, "* Reading other elements of the index from files %s\n",
             ref_file_name);
+
+#ifndef TAL_BENCHMARK
     bwa_idx_load_ele(ref_file_name, BWA_IDX_ALL);
+#endif
 
     fprintf(stderr, "* Done reading Index!!\n");
 }
