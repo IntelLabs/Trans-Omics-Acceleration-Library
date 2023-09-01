@@ -100,6 +100,21 @@ Author: Sanchit Misra <sanchit.misra@intel.com>
             f21 = _mm256_max_epi16(f21, tempVec); \
             }
 
+#else
+
+#define SIMD_WIDTH 16
+#define _MM_INT_TYPE __m128i
+#define _MM_SET1_EPI16 _mm_set1_epi8
+#define _MM_SETZERO _mm_setzero_si128
+#define _MM_STORE _mm_store_si128
+#define _MM_LOAD _mm_load_si128
+
+#define MAIN_CODE(s1, s2, h00, h11, e11, f11, f21, zeroVec, maxScoreVec, gapOpenVec, gapExtendVec) \
+    { \
+            printf("sse vectorization is not supported. Try using avx2/512. Exiting..\n");  \
+            exit(0); \
+    }
+
 #endif
 
 
