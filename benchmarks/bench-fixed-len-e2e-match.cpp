@@ -43,7 +43,7 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 #endif
 
 
-#define QUERY_DB_SIZE 12500000000L
+#define QUERY_DB_SIZE 20500000000L
 
 #define DUMMY_CHAR 6
 
@@ -64,6 +64,26 @@ Authors: Sanchit Misra <sanchit.misra@intel.com>; Vasimuddin Md <vasimuddin.md@i
 
 #define BEST_BATCH_SIZE 24
 #define MAX_BATCH_SIZE 128
+
+unsigned char nst_nt4_table_1[256] = {
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 5 /*'-'*/, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
+};
+
 
 void bseq_destroy(bseq1_t *s)
 {
@@ -104,25 +124,87 @@ int64_t get_freq()
     return (endTick - startTick);
 }
 
+void encode_read(uint8_t *enc_qdb,
+				 bseq1_t *seqs,
+				 int64_t numQueries, uint32_t query_length,
+				 uint64_t start, uint64_t &last, uint64_t max_num_queries, int64_t *lisa_enc){
+
+		uint64_t orig_query_count = start + (uint64_t) numQueries;
+
+		if(orig_query_count > max_num_queries)
+			orig_query_count = max_num_queries;
+	
+
+	numQueries = 0;
+
+	for (int st=start; st < orig_query_count; st++) {
+        int cind = numQueries * query_length;
+        int nflag = 0;
+		lisa_enc[st] = 0;
+        for(int r = 0; r < query_length; ++r) {
+#if 0
+            switch(seqs[st].seq[r])
+            {
+                case 'A': enc_qdb[r+cind]=0;
+                          break;
+                case 'C': enc_qdb[r+cind]=1;
+                          break;
+                case 'G': enc_qdb[r+cind]=2;
+                          break;
+                case 'T': enc_qdb[r+cind]=3;
+                          break;
+                default: nflag = 1;
+            }
+#else
+			enc_qdb[r+cind] = nst_nt4_table_1[seqs[st].seq[r]];
+			int64_t temp = enc_qdb[r+cind];
+			lisa_enc[st] = (lisa_enc[st]<<2) | temp;
+        	if (temp > 3) nflag = 1;
+#endif
+        }
+		if(nflag == 0)
+            numQueries++;
+    }
+	
+	last = start + numQueries;
+
+}
+
 void exact_match(FMI_search *fmiSearch,
                  uint8_t *enc_qdb,
+				 bseq1_t *seqs,
                  int64_t numQueries, uint32_t query_length,
                  int64_t *k_l_range,
-                 int32_t batch_size, int32_t numthreads)
+                 int32_t batch_size, int32_t numthreads, int64_t *lisa_enc)
 {
+
+#ifndef PAR_ENC
+	uint64_t last = 0;
+	encode_read(enc_qdb, seqs, numQueries, query_length, 0, last, numQueries, lisa_enc);
+	numQueries = last;
+#endif
+    int64_t start_thread = __rdtsc();
 #pragma omp parallel num_threads(numthreads)
     {
         int32_t tid = omp_get_thread_num();
         //int64_t start_thread = __rdtsc();
         uint32_t perThreadQuota = (numQueries + numthreads - 1) / numthreads;
         uint32_t first = tid * perThreadQuota;
-        uint32_t last  = (tid + 1) * perThreadQuota;
-        if(last > numQueries) last = numQueries;
 
+#ifdef PAR_ENC	
+		uint64_t last;
+		encode_read(enc_qdb + first * query_length, seqs, perThreadQuota, query_length, first, last, numQueries, lisa_enc);
+#else
+        uint32_t last  = (tid + 1) * perThreadQuota;
+#endif        
+		if(last > numQueries) last = numQueries;
+		assert(last - first <= perThreadQuota);
         fmiSearch->exact_search(enc_qdb + first * query_length, last - first, query_length, k_l_range + 2 * first, batch_size);
         //int64_t end_thread = __rdtsc();
         //printf("%d] %ld ticks\n", tid, end_thread - start_thread);
     }
+    int64_t end_thread = __rdtsc();
+    fprintf(stderr, "Kernel cycle %ld ticks\n", end_thread - start_thread);
 
 }
 
@@ -227,8 +309,12 @@ int main(int argc, char **argv) {
 #endif
     uint64_t r;
     int32_t orig_query_count = numQueries;
-    numQueries = 0;
-    for (st=0; st < orig_query_count; st++) {
+
+	uint64_t pre_start = __rdtsc();
+   
+#if 0 
+	numQueries = 0;
+	for (st=0; st < orig_query_count; st++) {
         cind = numQueries * query_length;
         int nflag = 0;
         for(r = 0; r < query_length; ++r) {
@@ -248,6 +334,11 @@ int main(int argc, char **argv) {
         if(nflag == 0)
             numQueries++;
     }
+#endif
+	uint64_t pre_end = __rdtsc();
+
+	fprintf(stderr,"pre-processing %lu\n", pre_end - pre_start);
+
     int32_t z = atoi(argv[3]);
     int numthreads = atoi(argv[4]);
     assert(numthreads > 0);
@@ -262,6 +353,7 @@ int main(int argc, char **argv) {
     int64_t numSeq = numQueries * (query_length * 3 * z + 1);
     fprintf(stderr,"numSeq = %d, k_l size = %ld\n", numSeq, numQueries * (query_length * 3 * z + 1) * 2 * sizeof(int64_t));
     int64_t *k_l_range = (int64_t *)_mm_malloc(numSeq * 2 * sizeof(int64_t), 64);
+    int64_t *lisa_enc = (int64_t *)_mm_malloc(numSeq * sizeof(int64_t), 64);
     memset(k_l_range, 0, numSeq * 2 * sizeof(int64_t));
     int64_t startTick, endTick;
 
@@ -293,9 +385,10 @@ int main(int argc, char **argv) {
     {
         exact_match(fmiSearch,
                  enc_qdb,
+				 seqs,
                  numQueries, query_length,
                  k_l_range,
-                 batch_size, numthreads);
+                 batch_size, numthreads, lisa_enc);
     }
     endTick = __rdtsc();
 #ifdef VTUNE_ANALYSIS

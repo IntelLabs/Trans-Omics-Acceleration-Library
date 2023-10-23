@@ -59,10 +59,10 @@ class IPBWT_RMI {
 #endif
         int K;
         double inv_second_size;
-        int NUM_POS_BITS = 38;
-        uint64_t POS_MASK = 0x3fffffffffL;
-        int NUM_CHUNK_BITS = 42;
-        uint64_t CHUNK_MASK = 0x3ffffffffffL;
+        int NUM_POS_BITS = 36;
+        uint64_t POS_MASK = 0xfffffffffL;
+        int NUM_CHUNK_BITS = 44;
+        uint64_t CHUNK_MASK = 0xfffffffffffL;
         int NUM_IPBWT_BITS = NUM_CHUNK_BITS + NUM_POS_BITS;
         uint64_t NUM_IPBWT_BYTES = (NUM_IPBWT_BITS + 7 ) / 8;
         __mmask64 mask_ipbwt_load = (1 << NUM_IPBWT_BYTES) - 1;
@@ -224,7 +224,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, index_t t_size, string re
     n(t_size), K(K_), second_size(n+K_) {
 
     L1_PARAMETERS = NULL; //init
-    assert(K <= 21);
+    assert(K <= 50);
     assert(num_rmi_leaf_nodes >= 0);
 
     if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = pow(2, (n/64 == 0)? 1: ceil(log2(n/64))); // default value
@@ -491,7 +491,7 @@ IPBWT_RMI<index_t, kenc_t>::IPBWT_RMI(const string &t, string ref_seq_filename, 
     n((index_t)t.size()), K(K_), second_size(n+K_) {
 
     L1_PARAMETERS = NULL; //init
-    assert(K <= 21);
+    assert(K <= 50);
     assert(num_rmi_leaf_nodes >= 0);
 
     if(num_rmi_leaf_nodes == 0) num_rmi_leaf_nodes = pow(2, (n/64 == 0)? 1: ceil(log2(n/64))); // default value

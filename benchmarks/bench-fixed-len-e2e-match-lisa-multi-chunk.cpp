@@ -58,48 +58,33 @@ unsigned char nst_nt4_table_1[256] = {
 void encode_read(uint8_t *enc_qdb,
 				 bseq1_t *seqs,
 				 int64_t numQueries, uint32_t query_length,
-				 uint64_t start, uint64_t &last, uint64_t max_num_queries, uint64_t *lisa_enc){
+				 uint64_t start, uint64_t &last, uint64_t max_num_queries, vector <uint64_t*> &chunk_list, int K){
 
 		uint64_t orig_query_count = start + (uint64_t) numQueries;
 
 		if(orig_query_count > max_num_queries)
 			orig_query_count = max_num_queries;
-	
-
 	numQueries = 0;
-
 	for (int st=start; st < orig_query_count; st++) {
         int cind = numQueries * query_length;
         int nflag = 0;
-		lisa_enc[st] = 0;
-        for(int r = 0; r < query_length; ++r) {
-#if 0
-            switch(seqs[st].seq[r])
-            {
-                case 'A': enc_qdb[r+cind]=0;
-                          break;
-                case 'C': enc_qdb[r+cind]=1;
-                          break;
-                case 'G': enc_qdb[r+cind]=2;
-                          break;
-                case 'T': enc_qdb[r+cind]=3;
-                          break;
-                default: nflag = 1;
-            }
-#else
-			//enc_qdb[r+cind] = nst_nt4_table_1[seqs[st].seq[r]];
-			uint8_t base = nst_nt4_table_1[seqs[st].seq[r]];
-			lisa_enc[st] = (lisa_enc[st]<<2) | (uint64_t) base; //enc_qdb[r+cind];
-        	//if (enc_qdb[r+cind] > 3) nflag = 1;
-        	if (base > 3) nflag = 1;
-#endif
+        for(int r_chunk = 0; (r_chunk + K - 1) < query_length; r_chunk = r_chunk + K) {
+			uint64_t *lisa_enc = chunk_list[r_chunk/K];
+			lisa_enc[st] = 0;
+			uint64_t enc_val = 0;
+			for ( int r = r_chunk; r < r_chunk + K; ++r) {
+				uint8_t base = nst_nt4_table_1[seqs[st].seq[r]];
+				enc_val = (enc_val<<2) | (uint64_t) base; //enc_qdb[r+cind];
+			
+        		if (base > 3) nflag = 1;
+			}
+			lisa_enc[st] = enc_val;
         }
 		if(nflag == 0)
             numQueries++;
     }
 	
 	last = start + numQueries;
-
 }
 
 
@@ -184,13 +169,26 @@ int main(int argc, char** argv) {
     int32_t query_length = max_query_length;
     fprintf(stderr,"numQueries = %d, query_length = %d\n", numQueries, query_length);
 
+	int num_chunks = query_length / K;
 
-    uint64_t *str_enc = (uint64_t *)malloc(numQueries * sizeof(uint64_t));
+	assert(query_length % K == 0);
+	vector<uint64_t*> chunk_list;
+	for(int i = 0; i < num_chunks; i++) {	
+    	uint64_t *str_enc = (uint64_t *)malloc(numQueries * sizeof(uint64_t));
+		chunk_list.push_back(str_enc);
+	}
 
 #ifndef PAR_ENC
 	uint64_t filtered_num_queries = 0;
-	encode_read(NULL, seqs, numQueries, query_length, 0 , filtered_num_queries, numQueries, str_enc);
+//	encode_read(NULL, seqs, numQueries, query_length, 0 , filtered_num_queries, numQueries, chunk_list[0], K);
+	encode_read(NULL, seqs, numQueries, query_length, 0 , filtered_num_queries, numQueries, chunk_list, K);
 #endif
+	//for(int j = 0; j < numQueries; j++){
+	//	for(int i = 0; i < chunk_list.size(); i++){
+	//		fprintf(stderr," %d %d %lu\n", i, j, chunk_list[i][j]);
+	//	}
+	//}
+
 // ------------------------Step 2 end ------------------------------------------------------------
 
 
@@ -251,11 +249,10 @@ uint64_t matchCount = 0;
 int optimal_num_threads = numThreads; //min(34, numThreads);
 
 
-int num_iter = max_query_len;
 totalTicks -= __rdtsc(); 
-//while(num_iter)
-{
-
+//while(num_iter >= 0)
+//{
+	//uint64_t *str_enc = chunk_list[num_iter];
 
 	#if ENABLE_PREFETCH
 	int64_t parallel_batch_size  = ceil((q_size/numThreads + 1)/80);
@@ -270,10 +267,16 @@ totalTicks -= __rdtsc();
 
 #ifdef PAR_ENC
 			uint64_t filtered_num_queries = 0;
-			encode_read(NULL, seqs, qs_sz, query_length, i, filtered_num_queries, numQueries, str_enc);
+			encode_read(NULL, seqs, qs_sz, query_length, i, filtered_num_queries, numQueries, chunk_list, K);
 			//rmi.backward_extend_chunk_batched(&str_enc_v2[i], qs_sz, &intv_all[i*2]); 
 #endif
-			rmi.backward_extend_chunk_batched(&str_enc[i], qs_sz, &intv_all[i*2]); 
+			int num_iter = num_chunks - 1;
+			while(num_iter >= 0) // run multiple chunks right to left
+			{
+				uint64_t *str_enc = chunk_list[num_iter];
+				rmi.backward_extend_chunk_batched(&str_enc[i], qs_sz, &intv_all[i*2]); 
+				num_iter--;
+			}
 			q_processed += qs_sz;
 			//fprintf(stderr, "processed: %ld \n", q_processed);
 		}
@@ -289,7 +292,8 @@ totalTicks -= __rdtsc();
 		    intv_all[2*i + 1] = q_intv.second;
     }
 #endif
-}
+	//num_iter--;
+//}
 
 totalTicks += __rdtsc();
 
@@ -310,7 +314,7 @@ totalTicks += __rdtsc();
     int64_t num_queries = count(queries.begin(), queries.end(), ';');
     assert(num_queries > 0);
     eprintln("Search Done.");
-    eprintln("Number of exact matchs = %lld, match counnt %lld num queries %lld qs_size %lld", (long long)numMatches, (long long)matchCount, (long long)num_queries, (long long)q_size);
+    eprintln("Number of exact matchs = %lld, match count %lld num queries %lld qs_size %lld", (long long)numMatches, (long long)matchCount, (long long)num_queries, (long long)q_size);
     eprintln("total cycle = %lld", (long long)totalTicks);
     eprintln("Ticks per query = %.3f", (double)(totalTicks * 1.0 / num_queries));
     eprintln("%lld: Binary search per query = %.3f", num_rmi_leaf_nodes,(double)(bin_search_walk * 1.0 / num_queries));
@@ -327,7 +331,7 @@ totalTicks += __rdtsc();
           printf("\n");
         }
 #endif
-    free(str_enc); 
+    //free(str_enc); 
 	free(intv_all);
     return 0;
 }
