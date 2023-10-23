@@ -40,7 +40,7 @@ endif
 ARCH_FLAGS=	-msse4.1
 #ARCH_FLAGS=	-mavx512bw
 MEM_FLAGS=	-DSAIS=1
-CPPFLAGS=	-DENABLE_PREFETCH $(MEM_FLAGS) -DKSW=1 -DTAL_BENCHMARK
+CPPFLAGS=	-DENABLE_PREFETCH $(MEM_FLAGS) -DKSW=1 -DTAL_BENCHMARK -DPAR_ENC_
 INCLUDES=   -Iext -Iext/safestringlib/include -Isrc/FMI/ -Isrc/alignment/Smith-Waterman/
 LIBS=		-fopenmp -lm -lz -L. -ltal -Lext/safestringlib/ -lsafestring
 OBJS=		ext/utils.o \
@@ -138,11 +138,11 @@ HP= -DNO_HUGE_PAGE
 ifeq ($(huge_page), 1)
 	HP= -DHUGE_PAGE
 endif
-
+HP= -DHUGE_PAGE_
 LISA_CC = g++
 LISA_CFLAGS = -DSAIS=1 -std=c++17 -march=native -Ofast -fopenmp -Wall -Wshadow -Wno-char-subscripts
 
-LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_ -DTAL_BENCHMARK
+LISA_MACROS = -DOUTPUT -DNO_DNA_ORD -DVECTORIZE -DENABLE_PREFETCH  -DLINEAR_ONLY_ -DTAL_BENCHMARK -DPAR_ENC_
 
 LISA_INCLUDE = -I ./src/LISA-FMI/ -I ./ext/ -I ./ext/safestringlib/include/ -I ./src/FMI/ 
 LISA_LDLIBS = -lz -L./ -ltal -L ./ext/safestringlib/ -lsafestring 
@@ -151,13 +151,16 @@ OBJ_CPP =  ./src/LISA-FMI/*.cpp
 
 VTUNE = -DVTUNE_ANALYSIS -I/swtools/intel/vtune_amplifier/include/ -littnotify -L/swtools/intel/vtune_amplifier/lib64/ 
 
-lisa: smem-lisa exact-search-lisa build-index-forward-only-lisa build-index-with-rev-complement-lisa
+lisa: smem-lisa exact-search-lisa build-index-forward-only-lisa build-index-with-rev-complement-lisa exact-search-lisa-multi-chunk
 smem-lisa: ./benchmarks/bench-smem-lisa.cpp
 	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${HP} -DREV_COMP ${LISA_INCLUDE} ${OBJ_CPP}  ./benchmarks/bench-smem-lisa.cpp  ${LISA_LDLIBS} -DPRINT_OUTPUT -o smem-lisa.o
 
 
 exact-search-lisa: ./benchmarks/bench-fixed-len-e2e-match-lisa.cpp
 	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${HP} ${LISA_INCLUDE} ${OBJ_CPP} ./benchmarks/bench-fixed-len-e2e-match-lisa.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o exact-search-lisa.o 
+
+exact-search-lisa-multi-chunk: ./benchmarks/bench-fixed-len-e2e-match-lisa-multi-chunk.cpp
+	${LISA_CC} ${LISA_CFLAGS} ${LISA_MACROS} ${HP} ${LISA_INCLUDE} ${OBJ_CPP} ./benchmarks/bench-fixed-len-e2e-match-lisa-multi-chunk.cpp ${LISA_LDLIBS} -DPRINT_OUTPUT -o exact-search-lisa-multi-chunk
 
 
 build-index-forward-only-lisa: ./benchmarks/build-lisa-index.cpp
