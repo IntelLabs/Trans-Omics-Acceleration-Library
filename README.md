@@ -5,8 +5,9 @@ The Trans-Omics Acceleration Library (TAL) contains key modules for Trans-Omics 
 
 The contributors to TAL are Sanchit Misra, Vasimuddin Md, Saurabh Kalikar, Narendra Chaudhary and Kanak Mahadik.
 
+The following block diagram illustrates the building blocks and applications available in TAL.
 <p align="center">
-<img src="https://github.com/IntelLabs/Open-Omics-Acceleration-Framework/blob/main/images/trans-omics-acceleration-lib.jpg" height="300"/a></br>
+<img src="https://github.com/IntelLabs/Trans-Omics-Acceleration-Library/blob/master/images/trans-omics-acceleration-lib.jpg" height="300"/a></br>
 </p> 
 
 
