@@ -47,7 +47,7 @@ class lisa_hash{
 
 		uint64_t* values_enc;
 		//uint64_t* values_enc_bin;
-		
+
 		uint64_t keys_size;
 		uint64_t p_size;
 
@@ -63,29 +63,29 @@ class lisa_hash{
 			keys = keys + 1; // keys[-1] stores total number of keys
 		#endif
 			values_enc = (uint64_t*)malloc(hash_size*sizeof(uint64_t));
-			
+
 			p = (rmi_val_t*)malloc(p_size*sizeof(rmi_val_t));
-			
+
 			//values_enc_bin = (uint64_t*)malloc(hash_size*sizeof(uint64_t));
-			
+
 			//p_bin = (rmi_val_t*)malloc(p_size*sizeof(rmi_val_t));
 
 			keys_size = hash_size;
-		//	keys[-1] = keys_size;	
+		//	keys[-1] = keys_size;
 			this->p_size = p_size;
 
 			fprintf(stderr, "Memory allocated %ld \n", p_size);
 
 		}
-		//This function is no longer used. 	
+		//This function is no longer used.
 		void store_sorted_keys(string binFileName){
 
-				
-			ofstream wf(binFileName, ios::out | ios::binary);
-			wf.write((char*)&keys[-1], (1+keys_size)*sizeof(rmi_key_t));			      
 
-			wf.close();	
-			
+			ofstream wf(binFileName, ios::out | ios::binary);
+			wf.write((char*)&keys[-1], (1+keys_size)*sizeof(rmi_key_t));
+
+			wf.close();
+
 			rmi_key_t *temp_keys = (rmi_key_t*)malloc((1 + keys_size)*sizeof(rmi_key_t));
 			ifstream rf(binFileName, ios::out | ios::binary);
 			rf.read((char*)&temp_keys[0], (1 + keys_size)*sizeof(rmi_key_t));
@@ -101,22 +101,22 @@ class lisa_hash{
 			else{
 				cout<<"File writing error!!\n"<<temp_keys[0] << " "<<keys[-1] << keys_size;
 			}
-			free(temp_keys);			      
-		}	
+			free(temp_keys);
+		}
 
 		void set_key_value(uint64_t i, rmi_key_t key, uint64_t p_pos, uint64_t p_size){
-		
+
 		//		keys[i] = key;//<<1;
 				values_enc[i] = p_pos << 32 | p_size;
 		}
-		
+
 		void get_val(uint64_t i, uint64_t &pos, uint64_t &p_size){
-			
+
 			pos = values_enc[i] >> 32;
 			p_size = (uint32_t) values_enc[i];
 		}
 
-		
+
 
 		void load_bin(string inputFile){
 			fprintf(stderr, "Loading from bin\n");
@@ -128,7 +128,7 @@ class lisa_hash{
 			instream_f1.seekg(0);
 			instream_f1.read((char*)&values_enc[0], keys_size*sizeof(uint64_t));
 			instream_f1.close();
-			
+
 			instream_f2.seekg(0);
 			instream_f2.read((char*)&p[0], p_size*sizeof(uint64_t));
 			instream_f2.close();
@@ -137,19 +137,19 @@ class lisa_hash{
 				if(p[i] != p_bin[i]){
 					fprintf(stderr, "Error!! %lld %lld\n",p[i], p_bin[i] );
 				}
-			}	
+			}
 			for(uint64_t i = 0; i < keys_size; i++){
 				if(values_enc[i] != values_enc_bin[i]){
 					fprintf(stderr, "Error!! %lld %lld\n", values_enc[i], values_enc_bin[i]);
 				}
 			}
-			*/	
-		}	
-	
+			*/
+		}
+
 		void load(string inputFile){
 
 			ifstream f(inputFile);
-			
+
 			rmi_key_t key;
 			rmi_val_t val;
 			uint64_t n;
@@ -160,39 +160,39 @@ class lisa_hash{
 				//values_enc[++key_size] = val_size << 32 | n;
 				for(int j = 0; j < n; j++){
 					f>>val;
-					p[offset + j] = val;	
+					p[offset + j] = val;
 				}
 				set_key_value(i, key, offset, n);
 				offset +=n;
 				i++;
 			}
-		}	
-		
+		}
+
 
 
 	public:
 		lisa_hash(string inputFile, char* rmi_prefix, long leaf = 0){
 			uint64_t start_time, load_time, rmi_building_time, rmi_object;
 			start_time = __rdtsc();
-			
+
 			uint64_t val_count = 0;
-			
+
 			ifstream f_size(inputFile+"_size");
 			f_size>>keys_size;
 			f_size>>p_size;
 			mem_alloc(keys_size, p_size);
-	
+
 			fprintf(stderr, "Num_keys: %ld, num_values = %ld", keys_size, p_size);
 			//load(inputFile);
 			load_bin(inputFile);
-		
+
 			string prefix = inputFile + "_keys";
-#ifdef UINT64	
-			string keys_bin_file_name = prefix + ".uint64";		
+#ifdef UINT64
+			string keys_bin_file_name = prefix + ".uint64";
 #else
-			string keys_bin_file_name = prefix + ".f64";		
-#endif	
-	
+			string keys_bin_file_name = prefix + ".f64";
+#endif
+
 			ifstream rf(keys_bin_file_name, ios::out | ios::binary);
 			if(!rf.good()){
 				cout<<"Error: Binary file with keys not found!!\n";
@@ -202,40 +202,40 @@ class lisa_hash{
 			}
 
 
-			string keys_rmi_file = prefix + ".rmi_PARAMETERS"; 
+			string keys_rmi_file = prefix + ".rmi_PARAMETERS";
 			ifstream rmi_f(keys_rmi_file, ios::out | ios::binary);
 			if(!rmi_f.good() || leaf != 0){
-				cout<<"rmi file not found: "<< keys_rmi_file <<endl;
+				cout<<"rmi file not found, generating file: "<< keys_rmi_file <<endl;
 				if(leaf == 0)
 				{
 					cout<<"Number of rmi leaf nodes are not provided for "<<keys_size<<" keys\n";
 					cout<<"Using default number of leaf nodes: "<<keys_size/32<<"\n";
 					leaf = keys_size/32;
-				}							
+				}
 				load_time = __rdtsc() - start_time;
 				start_time = __rdtsc();
-				fprintf(stderr,"TIMER LOG: kay-val files loading time- %ld\n", load_time);
+				fprintf(stderr,"TIMER LOG: key-val files loading time- %ld\n", load_time);
 
 				//string script = "./scripts/build_rmi.sh";
 				string script = "./scripts/build-rmi.linear_spline.linear.sh";
 				string keys_path = " " + keys_bin_file_name;
 				string rmi_path = " " + keys_rmi_file;
-				string num_leaf = " " + std::to_string(leaf); 
-#ifdef UINT64	
+				string num_leaf = " " + std::to_string(leaf);
+#ifdef UINT64
 				string key_type = " UINT64";
 #else
 				string key_type = " F64";
-#endif	
-				string cmd = script + keys_path + rmi_path + num_leaf + key_type;				
+#endif
+				string cmd = script + keys_path + rmi_path + num_leaf + key_type;
 				system(cmd.c_str());
 			        rmi_building_time = __rdtsc() - start_time;
 				fprintf(stderr,"TIMER LOG: rmi building time- %ld\n", rmi_building_time);
 			}
 			rmi = new RMI<rmi_key_t>(&prefix[0]);
-			
 
-		}		
-		
+
+		}
+
 
 		rmi_val_t* get_hash_value(rmi_key_t key, int*n){
 			uint64_t index = rmi->lookup(key);
@@ -245,40 +245,40 @@ class lisa_hash{
 			}
 			uint64_t pos, p_size;
 
-			get_val(index, pos, p_size);	
+			get_val(index, pos, p_size);
 			*n = p_size;
 			return &p[pos];
 		}
 
 		rmi_val_t* get_hash_values_batched(rmi_key_t *keys, uint64_t num_keys, int* &num_values){
 
-			int64_t *pos = (int64_t*) malloc(num_keys*sizeof(int64_t));	
-			
+			int64_t *pos = (int64_t*) malloc(num_keys*sizeof(int64_t));
+
 			rmi->lookup_batched(keys, num_keys, &pos[0]);
 
 
 			num_values = (int*) malloc(num_keys*sizeof(int));
-			rmi_val_t **p_ptrs = (rmi_val_t**) malloc(num_keys*sizeof(rmi_val_t*));	
+			rmi_val_t **p_ptrs = (rmi_val_t**) malloc(num_keys*sizeof(rmi_val_t*));
 			uint64_t total_num_values = 0;
 			for(int i = 0; i < num_keys; i++){
 				if(pos[i] == -1){
 					num_values[i] = 0;
 					continue;
-				}				
+				}
 				num_values[i] = (uint32_t) values_enc[pos[i]];
 				total_num_values+= num_values[i];
 				p_ptrs[i] = &p[values_enc[pos[i]] >> 32];
-			}	
+			}
 			free(pos);
-			rmi_val_t* ret_values = (rmi_val_t*) malloc(total_num_values*sizeof(rmi_val_t));	
-			
+			rmi_val_t* ret_values = (rmi_val_t*) malloc(total_num_values*sizeof(rmi_val_t));
+
 			uint64_t cnt= 0;
 			for(int i = 0; i < num_keys; i++){
 
 				rmi_val_t *value_start_ptr = p_ptrs[i];
 				uint64_t numhit = num_values[i];
 
- 
+
 				for(int j = 0; j < numhit; j++){
 					ret_values[cnt++] = value_start_ptr[j];
 				}
@@ -289,9 +289,9 @@ class lisa_hash{
 
 
 		void mm_idx_get_batched(uint64_t* &minimizers, uint64_t num_minimizers, int64_t* &pos, uint64_t** &p_ptrs, int* &num_hits){
-			
+
 			rmi->lookup_batched(minimizers, num_minimizers, &pos[0]);
-			
+
 			for(int i = 0; i < num_minimizers; i++){
 				int64_t p_i = pos[i];
 
@@ -300,7 +300,7 @@ class lisa_hash{
 				else
 				num_hits[i] = (uint32_t) values_enc[p_i];
 				p_ptrs[i] = p + (values_enc[p_i] >> 32);
-			}	
+			}
 		}
 		~lisa_hash(){
 			delete rmi;

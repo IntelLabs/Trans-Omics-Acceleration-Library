@@ -1,5 +1,5 @@
 #!/bin/bash
-set -v
+set -e
 #sorted array file full path
 A=$1
 # RMI file full path
@@ -17,23 +17,30 @@ CXX=g++
 
 #cd build-rmi/learned-systems-rmi
 cd  ext/build-rmi/learned-systems-rmi
+[ -f sorted_doubles_rmi.cpp ] && rm sorted_doubles_rmi.cpp
+[ -f sorted_doubles_rmi.h ] && rm sorted_doubles_rmi.h
+[ -f sorted_doubles_rmi_data.h ] && rm sorted_doubles_rmi_data.h
 
-rm sorted_doubles_rmi.cpp sorted_doubles_rmi.h sorted_doubles_rmi_data.h
-#time /scratch/omics/installs/.cargo/bin/cargo run --release -- $A sorted_doubles_rmi linear_spline,linear $m
 time cargo run --release -- $A sorted_doubles_rmi linear_spline,linear $m
 cd ..
 
 echo "cargo done.."
-rm sorted_doubles_rmi.cpp sorted_doubles_rmi.h sorted_doubles_rmi_data.h
+[ -f sorted_doubles_rmi.cpp ] && rm sorted_doubles_rmi.cpp
+[ -f sorted_doubles_rmi.h ] && rm sorted_doubles_rmi.h
+[ -f sorted_doubles_rmi_data.h ] && rm sorted_doubles_rmi_data.h
 cp learned-systems-rmi/sorted_doubles_rmi.cpp .
 cp learned-systems-rmi/sorted_doubles_rmi.h .
 cp learned-systems-rmi/sorted_doubles_rmi_data.h .
 bash ./modify_generated_code.sh sorted_doubles_rmi $m
-rm rmi-minimizer
+
+[ -f rmi-minimizer ] && rm rmi-minimizer
 ${CXX} rmi-main.cpp sorted_doubles_rmi.cpp -D$T -o rmi-minimizer
 time ./rmi-minimizer $A $B > out
 grep avg_log2_err out
 echo "Built RMI"
-rm rmi-minimizer out 
-rm sorted_doubles_rmi.cpp sorted_doubles_rmi.h sorted_doubles_rmi_data.h
+[ -f rmi-minimizer ] && rm rmi-minimizer
+[ -f out ] && rm out
+[ -f sorted_doubles_rmi.cpp ] && rm sorted_doubles_rmi.cpp
+[ -f sorted_doubles_rmi.h ] && rm sorted_doubles_rmi.h
+[ -f sorted_doubles_rmi_data.h ] && rm sorted_doubles_rmi_data.h
 echo "Cleaning done."
