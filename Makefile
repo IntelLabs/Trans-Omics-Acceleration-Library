@@ -111,7 +111,7 @@ $(SAFE_STR_LIB):
 	cd ext/safestringlib/ && make clean && make CC=$(CC) directories libsafestring.a
 
 clean:
-	rm -fr ./*.o src/FMI/*.o src/LISA-FMI/*.o src/*.o ext/*.o benchmarks/*.o $(TAL_LIB) $(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
+	rm -fr ./*.o src/FMI/*.o src/LISA-FMI/*.o src/*.o ext/*.o benchmarks/*.o build-lisa-hash-index bench-dp-chaining $(TAL_LIB) $(BENCH_SMITH_WATERMAN) $(BUILD_INDEX_FOR_ONLY) $(BUILD_INDEX_WITH_RC) $(BENCH_SMEM) $(BENCH_FIXED_LEN_E2E)
 	cd ext/safestringlib && make CC=$(CC) clean
 
 depend:
