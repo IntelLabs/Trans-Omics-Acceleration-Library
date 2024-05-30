@@ -21,7 +21,7 @@ cd  ext/build-rmi/learned-systems-rmi
 [ -f sorted_doubles_rmi.h ] && rm sorted_doubles_rmi.h
 [ -f sorted_doubles_rmi_data.h ] && rm sorted_doubles_rmi_data.h
 
-time cargo run --release -- $A sorted_doubles_rmi linear_spline,linear $m
+time cargo run --offline --release -- $A sorted_doubles_rmi linear_spline,linear $m
 cd ..
 
 echo "cargo done.."
